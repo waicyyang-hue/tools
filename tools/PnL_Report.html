@@ -1,0 +1,604 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PNL损益分析工具</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;background:#f5f6fa;color:#2d3436;font-size:13px;line-height:1.5}
+.w{max-width:1600px;margin:0 auto;padding:16px}
+.hd{background:linear-gradient(135deg,#232f3e,#37475a);color:#fff;padding:28px 36px;border-radius:10px;margin-bottom:20px}
+.hd h1{font-size:22px;margin-bottom:4px}.hd p{opacity:.8;font-size:12px}
+.hd .feat{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
+.hd .feat span{background:rgba(255,255,255,.15);padding:3px 12px;border-radius:20px;font-size:11px}
+.kr{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px}
+.k{background:#fff;border-radius:8px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.06);text-align:center;border-top:3px solid #ff9900}
+.k.r{border-top-color:#e74c3c}.k.g{border-top-color:#27ae60}.k.b{border-top-color:#3498db}
+.k .l{font-size:11px;color:#636e72;margin-bottom:3px}.k .v{font-size:20px;font-weight:700;color:#232f3e}.k .s{font-size:10px;color:#b2bec3;margin-top:2px}
+.cd{background:#fff;border-radius:8px;padding:20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.cd h2{font-size:15px;color:#232f3e;margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid #ff9900}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#232f3e;color:#fff;padding:7px 8px;text-align:center;font-weight:600;position:sticky;top:0;white-space:nowrap;font-size:11px}
+td{padding:5px 8px;border-bottom:1px solid #f0f0f0;white-space:nowrap}
+tr:hover td{background:#fafafa}
+.R{text-align:right}.C{text-align:center}.L{text-align:left}
+.m{font-family:Consolas,Monaco,monospace;font-size:11px}
+.hr{background:#fff0f0;color:#c0392b;font-weight:600}
+.hy{background:#fff8e1;color:#e67e22}
+.hg{background:#e8f5e9;color:#27ae60}
+.tg{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600}
+.tr{background:#ffeaea;color:#e74c3c}.ty{background:#fff3cd;color:#856404}.tgn{background:#d4edda;color:#155724}
+.al{padding:12px 16px;border-radius:8px;margin-bottom:12px;font-size:12px}
+.ar{background:#fef0f0;border-left:4px solid #e74c3c}
+.ay{background:#fef9e7;border-left:4px solid #f39c12}
+.sx{overflow-x:auto}
+.pp{color:#27ae60;font-weight:600}.pn{color:#e74c3c;font-weight:600}
+.tn{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+.tb{padding:7px 16px;border:none;background:#e9ecef;border-radius:6px 6px 0 0;cursor:pointer;font-size:12px;font-weight:600;color:#495057;transition:.2s}
+.tb.a{background:#fff;color:#232f3e;box-shadow:0 -2px 4px rgba(0,0,0,.06)}
+.tc{display:none}.tc.a{display:block}
+#upload-area{border:2px dashed #b2bec3;border-radius:12px;padding:50px 40px;text-align:center;cursor:pointer;transition:.3s;background:#fff;margin-bottom:20px}
+#upload-area:hover,#upload-area.drag{border-color:#ff9900;background:#fff8f0}
+#upload-area h3{font-size:18px;color:#232f3e;margin-bottom:8px}
+#upload-area p{color:#636e72;font-size:13px}
+#file-list{margin:12px 0;font-size:12px;color:#495057}
+#file-list div{padding:4px 0}
+#start-btn{background:#ff9900;color:#fff;border:none;padding:12px 40px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;transition:.2s;margin-top:12px}
+#start-btn:hover{background:#e68a00}
+#start-btn:disabled{background:#ccc;cursor:not-allowed}
+#progress{display:none;margin:16px 0}
+#progress .bar{height:6px;background:#eee;border-radius:3px;overflow:hidden}
+#progress .fill{height:100%;background:#ff9900;border-radius:3px;transition:width .3s}
+#progress .txt{font-size:11px;color:#636e72;margin-top:4px}
+.steps{background:#fff;border-radius:10px;padding:20px 24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.steps h3{font-size:14px;color:#232f3e;margin-bottom:12px}
+.steps ol{margin-left:20px;font-size:13px;color:#495057;line-height:2}
+.steps ol b{color:#232f3e}
+.contact{text-align:center;font-size:11px;color:#b2bec3;margin-top:16px}
+.contact a{color:#ff9900}
+</style></head><body>
+<div class="w">
+<div class="hd">
+<h1>📊 PNL损益分析工具</h1>
+<p>提供店铺/ASIN维度PNL、亏损预警、超龄库存提醒、ACOS预警等</p>
+<div class="feat">
+<span>📋 店铺PnL总表</span>
+<span>📦 父ASIN损益</span>
+<span>🚨 亏损预警</span>
+<span>⏰ 超龄库存</span>
+<span>📊 ACOS分析</span>
+<span>🎯 行动建议</span>
+</div>
+</div>
+
+<div id="upload-section">
+<div class="steps">
+<h3>📝 使用步骤：获取SKU成本报告</h3>
+<ol>
+<li>登录<b>卖家后台</b> (Seller Central)</li>
+<li>进入 <b>销售成本和费用</b> → <b>报告</b> → <b>SKU成本报告</b></li>
+<li>自定义设置：选择<b>商城</b>、<b>汇总级别</b>、<b>日期范围</b>、<b>年份</b>（如需逐月分析，需分别下载各月数据）</li>
+<li><b>报告配置全选</b>（勾选所有费用项）</li>
+<li>点击<b>生成报告</b>，下载 CSV 文件</li>
+<li>将下载的 CSV 文件上传到下方，点击开始分析</li>
+</ol>
+</div>
+
+<div id="upload-area" onclick="document.getElementById('csv-input').click()">
+<h3>📁 点击或拖拽上传 CSV 文件</h3>
+<p>支持上传一个或多个 SKU Economics 报告（.csv 格式）</p>
+<p style="font-size:11px;color:#b2bec3;margin-top:8px">文件不会上传到任何服务器，所有分析在浏览器本地完成</p>
+<input type="file" id="csv-input" accept=".csv" multiple style="display:none">
+</div>
+<div id="file-list"></div>
+<div id="progress"><div class="bar"><div class="fill" id="prog-fill" style="width:0%"></div></div><div class="txt" id="prog-txt">准备中...</div></div>
+<div style="text-align:center"><button id="start-btn" disabled onclick="startAnalysis()">🚀 开始分析</button></div>
+<div class="contact">有问题请联系：<a href="mailto:cyangb@">cyangb@</a></div>
+</div>
+
+<div id="report" style="display:none"></div>
+</div>
+
+<script>
+// ========== FILE HANDLING ==========
+let csvFiles = [];
+const uploadArea = document.getElementById('upload-area');
+const csvInput = document.getElementById('csv-input');
+const fileList = document.getElementById('file-list');
+const startBtn = document.getElementById('start-btn');
+
+uploadArea.addEventListener('dragover', function(e){ e.preventDefault(); uploadArea.classList.add('drag'); });
+uploadArea.addEventListener('dragleave', function(){ uploadArea.classList.remove('drag'); });
+uploadArea.addEventListener('drop', function(e){
+  e.preventDefault(); uploadArea.classList.remove('drag');
+  handleFiles(e.dataTransfer.files);
+});
+csvInput.addEventListener('change', function(){ handleFiles(this.files); });
+
+function handleFiles(files){
+  for(let i=0;i<files.length;i++){
+    if(files[i].name.endsWith('.csv')){
+      csvFiles.push(files[i]);
+    }
+  }
+  renderFileList();
+}
+function renderFileList(){
+  let h='';
+  csvFiles.forEach(function(f,i){
+    h+='<div>📄 '+f.name+' ('+Math.round(f.size/1024)+'KB) <a href="#" onclick="removeFile('+i+');return false" style="color:#e74c3c;font-size:11px">删除</a></div>';
+  });
+  fileList.innerHTML=h;
+  startBtn.disabled = csvFiles.length===0;
+}
+function removeFile(i){ csvFiles.splice(i,1); renderFileList(); }
+
+// ========== CSV PARSER ==========
+function parseCSV(text){
+  // Handle BOM
+  if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+  let lines=text.split(/\r?\n/).filter(function(l){return l.trim()!=='';});
+  if(lines.length<2) return [];
+  let headers=lines[0].split(',');
+  let rows=[];
+  for(let i=1;i<lines.length;i++){
+    let vals=lines[i].split(',');
+    let obj={};
+    for(let j=0;j<headers.length;j++){
+      obj[headers[j].trim()]=vals[j]?vals[j].trim():'';
+    }
+    rows.push(obj);
+  }
+  return rows;
+}
+
+function sf(v){
+  if(!v||v==='') return 0;
+  var n=parseFloat(v.replace(/,/g,''));
+  return isNaN(n)?0:n;
+}
+function ab(v){return Math.abs(v);}
+function fm(v){
+  if(ab(v)>=1e6) return '\u00a5'+(v/1e4).toLocaleString('en',{maximumFractionDigits:0})+'\u4e07';
+  return '\u00a5'+v.toLocaleString('en',{maximumFractionDigits:0});
+}
+function fk(v){return (v/1000).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fp(v){return (v*100).toFixed(1)+'%';}
+function fi(v){return Math.round(v).toLocaleString('en');}
+function fc(v){return v.toLocaleString('en',{maximumFractionDigits:0});}
+
+// ========== ANALYSIS ENGINE ==========
+function calcRow(r){
+  return {
+    ns:sf(r['净销售额']),
+    ship:sf(r['基本配送费用（总计）']),
+    stor:sf(r['基本月度仓储费（总计）']),
+    util:sf(r['仓储利用率附加费（总计）']),
+    aged:sf(r['超龄库存附加费（总计）']),
+    disp:sf(r['亚马逊物流弃置订单费用（总计）']),
+    rfee:sf(r['退款管理费用（总计）']),
+    comm:sf(r['销售佣金（总计）'])+sf(r['销售佣金退款（总计）']),
+    ad:sf(r['商品推广费用（总计）']),
+    prom:sf(r['促销每日费用（总计）'])+sf(r['基于促销绩效的费用（总计）']),
+    sold:Math.round(sf(r['已售商品数量'])),
+    ret:Math.round(sf(r['退货商品数量'])),
+    nsold:Math.round(sf(r['已售商品净数量'])),
+    avgp:sf(r['平均销售价格'])
+  };
+}
+function sumd(list){
+  var r={ns:0,ship:0,stor:0,util:0,aged:0,disp:0,rfee:0,comm:0,ad:0,prom:0,sold:0,ret:0,nsold:0,avgp:0};
+  list.forEach(function(d){for(var k in r) r[k]+=d[k];});
+  return r;
+}
+function tcost(d){return ab(d.ship)+ab(d.stor)+ab(d.util)+ab(d.aged)+ab(d.disp)+ab(d.rfee)+ab(d.comm)+ab(d.ad)+ab(d.prom);}
+function prof(d){return d.ns-tcost(d);}
+function profx(d){return prof(d)+ab(d.ad);}
+
+
+// ========== START ANALYSIS ==========
+function startAnalysis(){
+  var prog=document.getElementById('progress');
+  var fill=document.getElementById('prog-fill');
+  var ptxt=document.getElementById('prog-txt');
+  prog.style.display='block';
+  startBtn.disabled=true;
+  ptxt.textContent='正在读取文件...'; fill.style.width='10%';
+
+  var allRows=[];
+  var loaded=0;
+
+  csvFiles.forEach(function(file){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var text=e.target.result;
+      var rows=parseCSV(text);
+      allRows=allRows.concat(rows);
+      loaded++;
+      fill.style.width=Math.round(10+loaded/csvFiles.length*30)+'%';
+      ptxt.textContent='已读取 '+loaded+'/'+csvFiles.length+' 个文件 ('+allRows.length+' 行)';
+      if(loaded===csvFiles.length){
+        fill.style.width='50%'; ptxt.textContent='正在分析数据...';
+        setTimeout(function(){ runAnalysis(allRows); },100);
+      }
+    };
+    reader.readAsText(file,'UTF-8');
+  });
+}
+
+function runAnalysis(rows){
+  var fill=document.getElementById('prog-fill');
+  var ptxt=document.getElementById('prog-txt');
+
+  // Detect date range
+  var startDate=rows[0]['开始日期']||'?';
+  var endDate=rows[0]['结束日期']||'?';
+  var currency=rows[0]['货币代码']||'JPY';
+  var marketplace=rows[0]['亚马逊商城']||'?';
+
+  // Calc all rows
+  var ac=rows.map(calcRow);
+  var G=sumd(ac);
+  var GN=G.ns, GA=ab(G.ad), GP=prof(G), GTC=tcost(G);
+
+  fill.style.width='60%'; ptxt.textContent='正在汇总父ASIN...';
+
+  // P-ASIN aggregation
+  var pm={};
+  rows.forEach(function(r,i){
+    var pa=r['父 ASIN']||'';
+    if(!pm[pa]) pm[pa]=[];
+    pm[pa].push(ac[i]);
+  });
+
+  var PL=[];
+  for(var pa in pm){
+    var cl=pm[pa], d=sumd(cl), ns=d.ns, p=prof(d), px=profx(d), tc=tcost(d), ad=ab(d.ad);
+    PL.push({pa:pa,ns:ns,nsold:Math.round(d.nsold),ret:Math.round(d.ret),
+      comm:ab(d.comm),ship:ab(d.ship),stor:ab(d.stor),aged:ab(d.aged),ad:ad,
+      oth:ab(d.disp)+ab(d.rfee)+ab(d.prom)+ab(d.util),
+      tc:tc,p:p,px:px,
+      pr:ns?p/ns:0, prx:ns?px/ns:0, acos:ns?ad/ns:0,
+      ads:GA?ad/GA:0, rs:GN?ns/GN:0, n:cl.length});
+  }
+  PL.sort(function(a,b){return b.ns-a.ns;});
+
+  fill.style.width='70%'; ptxt.textContent='正在分析超龄库存...';
+
+  // Aged list
+  var aged_list=[];
+  rows.forEach(function(r,i){
+    var av=sf(r['超龄库存附加费（总计）']);
+    if(av>0) aged_list.push({pa:r['父 ASIN']||'',asin:r['ASIN']||'',msku:r['MSKU']||'',
+      aged:av,ns:sf(r['净销售额']),sold:Math.round(sf(r['已售商品净数量'])),stor:sf(r['基本月度仓储费（总计）'])});
+  });
+  aged_list.sort(function(a,b){return b.aged-a.aged;});
+
+  // Derived lists
+  var loss=PL.filter(function(p){return p.p<0&&p.ns>0;}).sort(function(a,b){return a.p-b.p;});
+  var hacos=PL.filter(function(p){return p.acos>0.25&&p.ad>10000;}).sort(function(a,b){return b.acos-a.acos;});
+  var lowm=PL.filter(function(p){return p.pr>0&&p.pr<0.40&&p.ns>50000;}).sort(function(a,b){return a.pr-b.pr;});
+
+  // Aged by P-ASIN
+  var pag={};
+  aged_list.forEach(function(a){
+    if(!pag[a.pa]) pag[a.pa]={f:0,c:0,ns:0,ns0:0};
+    pag[a.pa].f+=a.aged; pag[a.pa].c++; pag[a.pa].ns+=a.ns;
+    if(a.sold<=0) pag[a.pa].ns0++;
+  });
+  var pags=Object.keys(pag).map(function(k){return {pa:k,d:pag[k]};}).sort(function(a,b){return b.d.f-a.d.f;});
+
+  // Action data
+  var aged_zero=aged_list.filter(function(a){return a.sold<=0;});
+  var aged_zero_fee=aged_zero.reduce(function(s,a){return s+a.aged;},0);
+  var aged_zero_pa={};
+  aged_zero.forEach(function(a){aged_zero_pa[a.pa]=1;});
+  var aged_zero_pa_count=Object.keys(aged_zero_pa).length;
+
+  var ad_cut=PL.filter(function(p){return p.acos>0.30&&p.ad>50000;}).sort(function(a,b){return b.ad-a.ad;});
+  var ad_cut_total=ad_cut.reduce(function(s,p){return s+p.ad;},0);
+  var ad_cut_save=ad_cut.reduce(function(s,p){return s+p.ad*0.4;},0);
+
+  var price_up=PL.filter(function(p){return p.pr>0.65&&p.nsold>20&&p.acos<0.15&&p.ns>100000;}).sort(function(a,b){return b.ns-a.ns;});
+  var bloated=PL.filter(function(p){return p.n>20&&p.ns>0&&p.nsold/p.n<2;}).sort(function(a,b){return b.n-a.n;});
+  var high_ret=PL.filter(function(p){return p.ret>5&&p.nsold>0&&p.ret/(p.nsold+p.ret)>0.08;}).sort(function(a,b){return b.ret/(b.nsold+b.ret)-a.ret/(a.nsold+a.ret);});
+  var stars=PL.filter(function(p){return p.pr>0.55&&p.ns>500000&&p.acos<0.20;}).sort(function(a,b){return b.p-a.p;});
+
+  fill.style.width='85%'; ptxt.textContent='正在生成报告...';
+
+  setTimeout(function(){
+    renderReport({
+      rows:rows, G:G, GN:GN, GA:GA, GP:GP, GTC:GTC, PL:PL,
+      aged_list:aged_list, loss:loss, hacos:hacos, lowm:lowm,
+      pags:pags, aged_zero:aged_zero, aged_zero_fee:aged_zero_fee,
+      aged_zero_pa_count:aged_zero_pa_count,
+      ad_cut:ad_cut, ad_cut_total:ad_cut_total, ad_cut_save:ad_cut_save,
+      price_up:price_up, bloated:bloated, high_ret:high_ret, stars:stars,
+      startDate:startDate, endDate:endDate, currency:currency, marketplace:marketplace
+    });
+    fill.style.width='100%'; ptxt.textContent='分析完成！';
+    document.getElementById('upload-section').style.display='none';
+    document.getElementById('report').style.display='block';
+  },100);
+}
+
+
+// ========== RENDER REPORT ==========
+function renderReport(D){
+  var h='';
+  var GN=D.GN,GA=D.GA,GP=D.GP,GTC=D.GTC,G=D.G,PL=D.PL;
+  var pw=PL.filter(function(p){return p.ns>0;});
+
+  // Header - reuse page header, just show meta info
+  h+='<div style="background:#fff;border-radius:8px;padding:12px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);font-size:12px;color:#636e72">';
+  h+='\u62a5\u544a\u671f\u95f4\uff1a'+D.startDate+'~'+D.endDate+' &nbsp;|&nbsp; \u5e02\u573a\uff1a'+D.marketplace+' &nbsp;|&nbsp; \u8d27\u5e01\uff1a'+D.currency+' &nbsp;|&nbsp; SKU\u6570\uff1a'+fi(D.rows.length)+' &nbsp;|&nbsp; \u7236ASIN\u6570\uff1a'+fi(PL.length);
+  h+='</div>';
+
+  // KPI
+  h+='<div class="kr">';
+  h+='<div class="k"><div class="l">\u51c0\u9500\u552e\u989d</div><div class="v">'+fm(GN)+'</div><div class="s">'+fk(GN)+'\u5343</div></div>';
+  h+='<div class="k b"><div class="l">\u51c0\u9500\u91cf</div><div class="v">'+fi(G.nsold)+'</div><div class="s">\u9000\u8d27 '+fi(G.ret)+'</div></div>';
+  h+='<div class="k r"><div class="l">\u5e73\u53f0\u8d39\u7528\u5408\u8ba1</div><div class="v">'+fm(GTC)+'</div><div class="s">\u5360'+fp(GTC/GN)+'</div></div>';
+  h+='<div class="k '+(GP/GN<0.5?'r':'g')+'"><div class="l">\u5e73\u53f0\u5229\u6da6(\u4e0d\u542bCOGS)</div><div class="v">'+fm(GP)+'</div><div class="s">'+fp(GP/GN)+'</div></div>';
+  h+='<div class="k r"><div class="l">SP\u5e7f\u544a\u8d39</div><div class="v">'+fm(GA)+'</div><div class="s">\u5360'+fp(GA/GN)+'</div></div>';
+  h+='<div class="k r"><div class="l">\u4e8f\u635f\u7236ASIN</div><div class="v">'+D.loss.length+'</div><div class="s">ACOS&gt;25%: '+D.hacos.length+'</div></div>';
+  h+='<div class="k r"><div class="l">\u8d85\u9f84\u5e93\u5b58SKU</div><div class="v">'+D.aged_list.length+'</div><div class="s">\u8d85\u9f84\u8d39'+fm(G.aged)+'</div></div>';
+  h+='</div>';
+
+  // Tab nav
+  h+='<div class="tn">';
+  h+='<button class="tb a" onclick="st(\'t1\')">📋 \u603b\u8868</button>';
+  h+='<button class="tb" onclick="st(\'t2\')">📦 \u7236ASIN\u635f\u76ca</button>';
+  h+='<button class="tb" onclick="st(\'t3\')">🚨 \u4e8f\u635f\u9884\u8b66</button>';
+  h+='<button class="tb" onclick="st(\'t4\')">⏰ \u8d85\u9f84\u5e93\u5b58</button>';
+  h+='<button class="tb" onclick="st(\'t5\')">📊 ACOS\u5206\u6790</button>';
+  h+='<button class="tb" onclick="st(\'t6\')">🎯 \u884c\u52a8\u5efa\u8bae</button>';
+  h+='</div>';
+
+  // ===== TAB1: PnL =====
+  var tpl=[
+    ['\u9500\u552e','\u51c0\u9500\u552e\u989d',G.ns,true],
+    ['\u7269\u6d41','\u57fa\u672c\u914d\u9001\u8d39\u7528',G.ship,false],
+    ['','\u4f4e\u5e93\u5b58\u6c34\u5e73\u8d39\u7528',0,false],
+    ['','\u5165\u5e93\u8fd0\u8f93\u8d39\u7528',0,false],
+    ['','\u5165\u5e93\u914d\u7f6e\u8d39',0,false],
+    ['\u4ed3\u50a8','\u57fa\u672c\u6708\u5ea6\u4ed3\u50a8\u8d39',G.stor,false],
+    ['','\u4ed3\u50a8\u5229\u7528\u7387\u9644\u52a0\u8d39',G.util,false],
+    ['','\u8d85\u9f84\u5e93\u5b58\u9644\u52a0\u8d39',G.aged,false],
+    ['\u9000\u8d27','\u4e9a\u9a6c\u900a\u7269\u6d41\u5f03\u7f6e\u8ba2\u5355\u8d39\u7528',G.disp,false],
+    ['','\u4e9a\u9a6c\u900a\u7269\u6d41\u79fb\u9664\u8ba2\u5355\u8d39\u7528',0,false],
+    ['','\u6279\u91cf\u6e05\u8d27\u5904\u7406\u8d39',0,false],
+    ['','\u9000\u6b3e\u7ba1\u7406\u8d39\u7528',G.rfee,false],
+    ['','\u9ad8\u9000\u8d27\u7387\u5904\u7406\u8d39',0,false],
+    ['\u4f63\u91d1','\u9500\u552e\u4f63\u91d1',G.comm,false],
+    ['','\u6279\u91cf\u6e05\u8d27\u9500\u552e\u4f63\u91d1',0,false],
+    ['\u5e7f\u544a','SP\u5546\u54c1\u63a8\u5e7f\u8d39\u7528',G.ad,false],
+    ['\u4fc3\u9500','\u4fc3\u9500\u8d39\u7528',G.prom,false]
+  ];
+
+  h+='<div id="t1" class="tc a"><div class="cd"><h2>📋 \u603b\u8868 PnL\uff08'+D.startDate+'~'+D.endDate+'\uff09</h2>';
+  h+='<table><thead><tr><th class="L" style="width:70px">\u6a21\u5757</th><th class="L" style="width:200px">\u9879\u76ee</th><th class="R" style="width:110px">(\'000)</th><th class="R" style="width:70px">%</th><th style="width:260px">\u5f02\u5e38\u6807\u8bb0</th></tr></thead><tbody>';
+
+  tpl.forEach(function(t){
+    var mod=t[0],item=t[1],val=t[2],isrev=t[3];
+    var kv=val/1000, pct=GN?ab(val)/GN:0, mk='', cls='';
+    if(item==='SP\u5546\u54c1\u63a8\u5e7f\u8d39\u7528'&&pct>0.12){mk='\ud83d\udd34 \u5e7f\u544a\u5360\u6bd4'+fp(pct)+'\uff0c\u4e25\u91cd\u504f\u9ad8';cls='hr';}
+    else if(item==='\u9500\u552e\u4f63\u91d1'&&pct>0.10){mk='\u26a1 \u4f63\u91d1\u5360\u6bd4'+fp(pct);cls='hy';}
+    else if(item==='\u57fa\u672c\u914d\u9001\u8d39\u7528'&&pct>0.10){mk='\u26a1 \u914d\u9001\u8d39\u5360\u6bd4'+fp(pct);cls='hy';}
+    else if(item==='\u8d85\u9f84\u5e93\u5b58\u9644\u52a0\u8d39'&&val>0&&G.stor>0){mk='\ud83d\udd34 \u8d85\u9f84\u8d39'+fm(val)+'\uff0c\u8fbe\u57fa\u672c\u4ed3\u50a8\u8d39'+Math.round(val/ab(G.stor)*100)+'%';cls='hr';}
+    var pd=isrev?'100.0%':fp(pct);
+    var sg=isrev?'':'-';
+    h+='<tr class="'+cls+'"><td class="L"><b>'+mod+'</b></td><td class="L">'+item+'</td><td class="R m">'+sg+fk(ab(val))+'</td><td class="R m">'+pd+'</td><td style="font-size:11px">'+mk+'</td></tr>';
+  });
+  h+='<tr style="background:#f0f0f0;font-weight:700;border-top:2px solid #232f3e"><td></td><td>\ud83d\udcb0 \u5229\u6da6\uff08\u4e0d\u542bCOGS/\u5934\u7a0b\uff09</td><td class="R m">'+fk(GP)+'</td><td class="R m">'+fp(GP/GN)+'</td><td style="font-size:11px">\u26a0\ufe0f \u6b64\u4e3a\u6263\u9664\u4e9a\u9a6c\u900a\u8d39\u7528\u540e\u6bdb\u5229\uff0c\u672a\u542b\u8d27\u7269\u6210\u672c\u548c\u5934\u7a0b</td></tr>';
+  h+='</tbody></table></div></div>';
+
+
+  // ===== TAB2: P-ASIN =====
+  h+='<div id="t2" class="tc"><div class="cd"><h2>📦 \u7236ASIN\u7ef4\u5ea6\u635f\u76ca\uff08\u6709\u9500\u552e\u989d TOP 100\uff09</h2>';
+  h+='<div class="sx"><table><thead><tr>';
+  ['#','\u7236ASIN','SKU','\u51c0\u9500\u91cf','\u51c0\u9500\u552e\u989d','\u4f63\u91d1','\u914d\u9001\u8d39','\u4ed3\u50a8\u8d39','\u8d85\u9f84\u8d39','\u5e7f\u544a\u8d39','\u5176\u4ed6','\u8d39\u7528\u5408\u8ba1','\u5229\u6da6(\u542b\u5e7f\u544a)','\u5229\u6da6\u7387','\u5229\u6da6(\u4e0d\u542b\u5e7f\u544a)','\u5229\u6da6\u7387','ACOS','\u5e7f\u544a\u5360\u6bd4','\u8425\u6536\u5360\u6bd4'].forEach(function(x){h+='<th>'+x+'</th>';});
+  h+='</tr></thead><tbody>';
+  pw.slice(0,100).forEach(function(p,i){
+    var pc=p.p<0?'pn':(p.pr>0.6?'pp':'');
+    var ac=p.acos>0.30&&p.ad>10000?'hr':(p.acos>0.20&&p.ad>5000?'hy':'');
+    var rc=p.p<0?'hr':'';
+    var agc=p.aged>5000?'hr':(p.aged>1000?'hy':'');
+    h+='<tr class="'+rc+'"><td class="C">'+(i+1)+'</td><td class="L m" style="font-size:10px">'+p.pa+'</td><td class="C">'+p.n+'</td><td class="R">'+fi(p.nsold)+'</td><td class="R m">'+fc(p.ns)+'</td><td class="R m">'+fc(p.comm)+'</td><td class="R m">'+fc(p.ship)+'</td><td class="R m">'+fc(p.stor)+'</td><td class="R m '+agc+'">'+fc(p.aged)+'</td><td class="R m">'+fc(p.ad)+'</td><td class="R m">'+fc(p.oth)+'</td><td class="R m" style="font-weight:600">'+fc(p.tc)+'</td><td class="R m '+pc+'">'+fc(p.p)+'</td><td class="R m '+pc+'">'+fp(p.pr)+'</td><td class="R m">'+fc(p.px)+'</td><td class="R m">'+fp(p.prx)+'</td><td class="R m '+ac+'">'+fp(p.acos)+'</td><td class="R m">'+fp(p.ads)+'</td><td class="R m">'+fp(p.rs)+'</td></tr>';
+  });
+  h+='</tbody></table></div></div></div>';
+
+  // ===== TAB3: Loss =====
+  h+='<div id="t3" class="tc"><div class="cd"><h2>🚨 \u4e8f\u635f\u9884\u8b66</h2>';
+  if(D.loss.length>0){
+    var tl=D.loss.reduce(function(s,p){return s+p.p;},0);
+    var tln=D.loss.reduce(function(s,p){return s+p.ns;},0);
+    var tla=D.loss.reduce(function(s,p){return s+p.ad;},0);
+    h+='<div class="al ar"><b>\u26a0\ufe0f '+D.loss.length+'\u4e2a\u7236ASIN\u6263\u9664\u4e9a\u9a6c\u900a\u8d39\u7528\u540e\u4e8f\u635f</b>\uff08\u672a\u542bCOGS\uff09<br>\u4e8f\u635f\u603b\u989d\uff1a<b style="color:#e74c3c">'+fm(tl)+'</b> | \u6d89\u53ca\u9500\u552e\u989d\uff1a'+fm(tln)+' | \u6d89\u53ca\u5e7f\u544a\u8d39\uff1a'+fm(tla)+'</div>';
+    h+='<div class="sx"><table><thead><tr>';
+    ['#','\u7236ASIN','SKU','\u51c0\u9500\u552e\u989d','\u5e7f\u544a\u8d39','ACOS','\u8d39\u7528\u5408\u8ba1','\u4e8f\u635f\u989d','\u4e8f\u635f\u7387','\u4e0d\u542b\u5e7f\u544a\u5229\u6da6','\u4e0d\u542b\u5e7f\u544a\u5229\u6da6\u7387','\u8bca\u65ad'].forEach(function(x){h+='<th>'+x+'</th>';});
+    h+='</tr></thead><tbody>';
+    D.loss.forEach(function(p,i){
+      var dg=[];
+      if(p.acos>0.30) dg.push('\u5e7f\u544aACOS\u8fc7\u9ad8');
+      if(p.ad>p.ns*0.5) dg.push('\u5e7f\u544a\u8d39\u8d85\u9500\u552e\u989d50%');
+      if(p.aged>1000) dg.push('\u8d85\u9f84\u8d39\u00a5'+fc(p.aged));
+      if(p.px<0) dg.push('\u4e0d\u6295\u5e7f\u544a\u4e5f\u4e8f\u635f');
+      if(!dg.length) dg.push('\u8d39\u7528\u7ed3\u6784\u9700\u4f18\u5316');
+      h+='<tr class="hr"><td class="C">'+(i+1)+'</td><td class="L m" style="font-size:10px">'+p.pa+'</td><td class="C">'+p.n+'</td><td class="R m">'+fc(p.ns)+'</td><td class="R m">'+fc(p.ad)+'</td><td class="R m">'+fp(p.acos)+'</td><td class="R m">'+fc(p.tc)+'</td><td class="R m pn">'+fc(p.p)+'</td><td class="R m pn">'+fp(p.pr)+'</td><td class="R m">'+fc(p.px)+'</td><td class="R m">'+fp(p.prx)+'</td><td class="L" style="font-size:11px">'+dg.join('\uff1b')+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+  }
+  if(D.lowm.length>0){
+    h+='<h3 style="margin-top:20px;font-size:14px;color:#e67e22">\u26a1 \u4f4e\u5229\u6da6\u7387\u9884\u8b66\uff08&lt;40%\uff0c\u9500\u552e\u989d&gt;\u00a550K\uff09\u2014 '+D.lowm.length+'\u4e2a</h3>';
+    h+='<div class="sx"><table><thead><tr><th>#</th><th>\u7236ASIN</th><th>\u51c0\u9500\u552e\u989d</th><th>\u5e7f\u544a\u8d39</th><th>ACOS</th><th>\u5229\u6da6</th><th>\u5229\u6da6\u7387</th><th>\u98ce\u9669</th></tr></thead><tbody>';
+    D.lowm.slice(0,30).forEach(function(p,i){
+      var rk=p.pr<0.20?'\ud83d\udd34 \u6781\u9ad8':(p.pr<0.30?'\ud83d\udfe1 \u9ad8':'\u26a1 \u4e2d');
+      var cl=p.pr<0.20?'hr':(p.pr<0.30?'hy':'');
+      h+='<tr class="'+cl+'"><td class="C">'+(i+1)+'</td><td class="L m" style="font-size:10px">'+p.pa+'</td><td class="R m">'+fc(p.ns)+'</td><td class="R m">'+fc(p.ad)+'</td><td class="R m">'+fp(p.acos)+'</td><td class="R m">'+fc(p.p)+'</td><td class="R m">'+fp(p.pr)+'</td><td class="C">'+rk+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+  }
+  h+='</div></div>';
+
+  // ===== TAB4: Aged =====
+  var taf=D.aged_list.reduce(function(s,a){return s+a.aged;},0);
+  var ansl=D.aged_list.filter(function(a){return a.sold<=0;});
+  var ansf=ansl.reduce(function(s,a){return s+a.aged;},0);
+  h+='<div id="t4" class="tc"><div class="cd"><h2>⏰ \u8d85\u9f84\u5e93\u5b58ASIN</h2>';
+  if(taf>0){
+    h+='<div class="al ar"><b>\u8d85\u9f84\u5e93\u5b58\u9644\u52a0\u8d39\u603b\u8ba1\uff1a'+fm(taf)+'</b>\uff0c\u6d89\u53ca'+D.aged_list.length+'\u4e2aSKU<br>\u5176\u4e2d<b>'+ansl.length+'\u4e2a\u96f6\u9500\u91cf</b>\uff0c\u8d85\u9f84\u8d39'+fm(ansf)+'\uff08\u5360'+Math.round(ansf/taf*100)+'%\uff09'+(G.stor>0?'<br>\u8d85\u9f84\u8d39\u8fbe\u57fa\u672c\u4ed3\u50a8\u8d39\u7684<b>'+Math.round(taf/ab(G.stor)*100)+'%</b>':'')+'</div>';
+    h+='<h3 style="margin:14px 0 6px;font-size:13px">\u6309\u7236ASIN\u6c47\u603b\u8d85\u9f84\u8d39 TOP 20</h3>';
+    h+='<table><thead><tr><th>#</th><th>\u7236ASIN</th><th>\u8d85\u9f84SKU</th><th>\u96f6\u9500\u91cf</th><th>\u8d85\u9f84\u8d39</th><th>\u51c0\u9500\u552e\u989d</th><th>\u8d85\u9f84/\u9500\u552e</th></tr></thead><tbody>';
+    D.pags.slice(0,20).forEach(function(x,i){
+      var d=x.d, rt=d.ns>0?d.f/d.ns*100:Infinity;
+      var rs=rt<1000?rt.toFixed(1)+'%':'\u221e';
+      var cl=rt>10||d.ns===0?'hr':(rt>5?'hy':'');
+      h+='<tr class="'+cl+'"><td class="C">'+(i+1)+'</td><td class="L m" style="font-size:10px">'+x.pa+'</td><td class="C">'+d.c+'</td><td class="C">'+d.ns0+'</td><td class="R m">'+fc(d.f)+'</td><td class="R m">'+fc(d.ns)+'</td><td class="R m">'+rs+'</td></tr>';
+    });
+    h+='</tbody></table>';
+    h+='<h3 style="margin:14px 0 6px;font-size:13px">\u8d85\u9f84\u8d39\u6700\u9ad8SKU TOP 30</h3>';
+    h+='<table><thead><tr><th>#</th><th>\u7236ASIN</th><th>ASIN</th><th>MSKU</th><th>\u8d85\u9f84\u8d39</th><th>\u4ed3\u50a8\u8d39</th><th>\u51c0\u9500\u552e\u989d</th><th>\u9500\u91cf</th><th>\u72b6\u6001</th></tr></thead><tbody>';
+    D.aged_list.slice(0,30).forEach(function(a,i){
+      var st=a.sold<=0?'<span class="tg tr">\u96f6\u9500\u91cf+\u8d85\u9f84</span>':'<span class="tg ty">\u6709\u9500\u91cf\u4f46\u8d85\u9f84</span>';
+      var cl=a.sold<=0?'hr':'';
+      h+='<tr class="'+cl+'"><td class="C">'+(i+1)+'</td><td class="L m" style="font-size:10px">'+a.pa+'</td><td class="L m" style="font-size:10px">'+a.asin+'</td><td class="L" style="font-size:10px;max-width:180px;overflow:hidden;text-overflow:ellipsis">'+a.msku.substring(0,35)+'</td><td class="R m">'+fc(a.aged)+'</td><td class="R m">'+fc(a.stor)+'</td><td class="R m">'+fc(a.ns)+'</td><td class="C">'+a.sold+'</td><td>'+st+'</td></tr>';
+    });
+    h+='</tbody></table>';
+  } else { h+='<p style="color:#27ae60">\u2705 \u65e0\u8d85\u9f84\u5e93\u5b58</p>'; }
+  h+='</div></div>';
+
+  // ===== TAB5: ACOS =====
+  var adpa=PL.filter(function(p){return p.ad>0;}).sort(function(a,b){return b.ad-a.ad;});
+  h+='<div id="t5" class="tc"><div class="cd"><h2>📊 \u5e7f\u544aACOS\u5206\u6790</h2>';
+  h+='<div class="al ay"><b>SP\u5e7f\u544a\u8d39\u603b\u8ba1\uff1a'+fm(GA)+'</b>\uff0c\u5360\u51c0\u9500\u552e\u989d'+fp(GA/GN)+'<br>ACOS&gt;25%\u4e14\u5e7f\u544a\u8d39&gt;\u00a510,000\u7684\u7236ASIN\uff1a<b>'+D.hacos.length+'\u4e2a</b></div>';
+  h+='<h3 style="margin:14px 0 6px;font-size:13px">\u5e7f\u544a\u6295\u5165 TOP 30</h3>';
+  h+='<div class="sx"><table><thead><tr><th>#</th><th>\u7236ASIN</th><th>\u51c0\u9500\u552e\u989d</th><th>\u5e7f\u544a\u8d39</th><th>ACOS</th><th>\u5229\u6da6(\u542b\u5e7f\u544a)</th><th>\u5229\u6da6\u7387</th><th>\u5229\u6da6(\u4e0d\u542b\u5e7f\u544a)</th><th>\u5229\u6da6\u7387</th><th>\u5e7f\u544a\u5360\u603b%</th><th>\u8bc4\u4f30</th></tr></thead><tbody>';
+  adpa.slice(0,30).forEach(function(p,i){
+    var ev=p.acos>0.50?'<span class="tg tr">\u4e25\u91cd\u4e8f\u635f</span>':(p.acos>0.30?'<span class="tg tr">ACOS\u8fc7\u9ad8</span>':(p.acos>0.20?'<span class="tg ty">\u9700\u4f18\u5316</span>':(p.acos>0.10?'<span class="tg tgn">\u6b63\u5e38</span>':'<span class="tg tgn">\u4f18\u79c0</span>')));
+    var ac=p.acos>0.30?'hr':(p.acos>0.20?'hy':'');
+    var pc=p.p<0?'pn':'';
+    h+='<tr><td class="C">'+(i+1)+'</td><td class="L m" style="font-size:10px">'+p.pa+'</td><td class="R m">'+fc(p.ns)+'</td><td class="R m">'+fc(p.ad)+'</td><td class="R m '+ac+'">'+fp(p.acos)+'</td><td class="R m '+pc+'">'+fc(p.p)+'</td><td class="R m '+pc+'">'+fp(p.pr)+'</td><td class="R m">'+fc(p.px)+'</td><td class="R m">'+fp(p.prx)+'</td><td class="R m">'+fp(p.ads)+'</td><td class="C">'+ev+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  // ACOS distribution
+  var bk=[[0,0.10,'\u4f18\u79c0'],[0.10,0.20,'\u6b63\u5e38'],[0.20,0.30,'\u9700\u4f18\u5316'],[0.30,0.50,'\u504f\u9ad8'],[0.50,999,'\u4e25\u91cd']];
+  h+='<h3 style="margin:14px 0 6px;font-size:13px">ACOS\u5206\u5e03</h3><table style="width:auto"><thead><tr><th>ACOS\u533a\u95f4</th><th>\u7236ASIN\u6570</th><th>\u5e7f\u544a\u8d39\u5408\u8ba1</th><th>\u51c0\u9500\u552e\u989d\u5408\u8ba1</th></tr></thead><tbody>';
+  bk.forEach(function(b){
+    var grp=adpa.filter(function(p){return p.acos>=b[0]&&p.acos<b[1];});
+    var gad=grp.reduce(function(s,p){return s+p.ad;},0);
+    var gns=grp.reduce(function(s,p){return s+p.ns;},0);
+    var cl=b[0]<0.10?'hg':(b[0]<0.20?'':(b[0]<0.30?'hy':'hr'));
+    h+='<tr class="'+cl+'"><td class="C">'+b[2]+' ('+Math.round(b[0]*100)+'%~'+Math.round(b[1]*100)+'%)</td><td class="C">'+grp.length+'</td><td class="R m">'+fc(gad)+'</td><td class="R m">'+fc(gns)+'</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+
+
+  // ===== TAB6: Actions =====
+  var months=3.5; // estimate period in months
+  h+='<div id="t6" class="tc"><div class="cd"><h2>\ud83c\udfaf \u884c\u52a8\u5efa\u8bae\uff08\u57fa\u4e8e\u6570\u636e\u7684\u5177\u4f53\u64cd\u4f5c\u9879\uff09</h2>';
+  h+='<p style="color:#636e72;margin-bottom:16px;font-size:12px">\u4ee5\u4e0b\u5efa\u8bae\u5747\u57fa\u4e8e\u672c\u62a5\u544a\u5b9e\u9645\u6570\u636e\u751f\u6210\uff0c\u6309\u4f18\u5148\u7ea7\u6392\u5e8f\u3002</p>';
+
+  // A1: Remove aged
+  h+='<div style="border:1px solid #e74c3c;border-radius:8px;padding:16px;margin-bottom:16px">';
+  h+='<h3 style="color:#e74c3c;font-size:14px;margin-bottom:8px">\ud83d\udd34 \u4f18\u5148\u7ea71\uff1a\u7acb\u5373\u79fb\u9664\u96f6\u9500\u91cf\u8d85\u9f84\u5e93\u5b58</h3>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">';
+  h+='<div style="background:#fef0f0;padding:10px;border-radius:6px;text-align:center"><div style="font-size:11px;color:#999">\u6d89\u53caSKU</div><div style="font-size:18px;font-weight:700;color:#e74c3c">'+D.aged_zero.length+'</div></div>';
+  h+='<div style="background:#fef0f0;padding:10px;border-radius:6px;text-align:center"><div style="font-size:11px;color:#999">\u6bcf\u6708\u53ef\u7701\u8d85\u9f84\u8d39(\u4f30)</div><div style="font-size:18px;font-weight:700;color:#e74c3c">'+fm(D.aged_zero_fee/months)+'</div></div>';
+  h+='<div style="background:#fef0f0;padding:10px;border-radius:6px;text-align:center"><div style="font-size:11px;color:#999">\u6d89\u53ca\u7236ASIN</div><div style="font-size:18px;font-weight:700;color:#e74c3c">'+D.aged_zero_pa_count+'</div></div>';
+  h+='</div>';
+  h+='<div style="font-size:12px"><b>\u5177\u4f53\u64cd\u4f5c\uff1a</b><br>\u2460 Seller Central \u2192 \u5e93\u5b58 \u2192 \u7ba1\u7406FBA\u5e93\u5b58<br>\u2461 \u7b5b\u9009\u4ee5\u4e0b\u7236ASIN\uff0c\u5bf9\u96f6\u9500\u91cf\u53d8\u4f53\u521b\u5efa<b>\u79fb\u9664\u8ba2\u5355</b>\uff08\u9009\u201c\u9000\u56de\u201d\u800c\u975e\u201c\u5f03\u7f6e\u201d\uff09</div>';
+  h+='<table style="margin-top:8px;width:auto"><thead><tr><th>\u7236ASIN</th><th>\u96f6\u9500\u91cfSKU</th><th>\u8d85\u9f84\u8d39</th><th>\u64cd\u4f5c</th></tr></thead><tbody>';
+  D.pags.slice(0,8).forEach(function(x){
+    if(x.d.ns0>0) h+='<tr><td class="L m" style="font-size:11px">'+x.pa+'</td><td class="C">'+x.d.ns0+'</td><td class="R m">'+fc(x.d.f)+'</td><td><span class="tg tr">\u7acb\u5373\u79fb\u9664</span></td></tr>';
+  });
+  h+='</tbody></table></div>';
+
+  // A2: Cut ads
+  h+='<div style="border:1px solid #e74c3c;border-radius:8px;padding:16px;margin-bottom:16px">';
+  h+='<h3 style="color:#e74c3c;font-size:14px;margin-bottom:8px">\ud83d\udd34 \u4f18\u5148\u7ea72\uff1a\u780d\u6389/\u964d\u4f4eACOS&gt;30%\u7684\u5e7f\u544a</h3>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">';
+  h+='<div style="background:#fef0f0;padding:10px;border-radius:6px;text-align:center"><div style="font-size:11px;color:#999">ACOS&gt;30%\u4e14\u5e7f\u544a&gt;\u00a55\u4e07</div><div style="font-size:18px;font-weight:700;color:#e74c3c">'+D.ad_cut.length+'</div></div>';
+  h+='<div style="background:#fef0f0;padding:10px;border-radius:6px;text-align:center"><div style="font-size:11px;color:#999">\u6d89\u53ca\u5e7f\u544a\u8d39</div><div style="font-size:18px;font-weight:700;color:#e74c3c">'+fm(D.ad_cut_total)+'</div></div>';
+  h+='<div style="background:#fef0f0;padding:10px;border-radius:6px;text-align:center"><div style="font-size:11px;color:#999">\u9884\u4f30\u53ef\u8282\u7701(\u780d40%)</div><div style="font-size:18px;font-weight:700;color:#e74c3c">'+fm(D.ad_cut_save)+'</div></div>';
+  h+='</div>';
+  h+='<div style="font-size:12px"><b>\u5177\u4f53\u64cd\u4f5c\uff1a</b><br>\u2460 ACOS&gt;50%\uff1a<b>\u6682\u505c\u5e7f\u544a</b>\uff0c\u9760\u81ea\u7136\u6d41\u91cf\u8dd12\u5468<br>\u2461 ACOS 30%~50%\uff1a\u7ade\u4ef7\u964d30%~40%\uff0c\u5173broad\u5339\u914d\uff0c\u53ea\u7559exact\u9ad8\u8f6c\u5316\u8bcd<br>\u2462 \u6bcf\u5468\u590d\u67e5\uff0c\u672a\u964d\u523025%\u4ee5\u4e0b\u7684\u7ee7\u7eed\u780d</div>';
+  h+='<table style="margin-top:8px"><thead><tr><th>\u7236ASIN</th><th>\u5e7f\u544a\u8d39</th><th>ACOS</th><th>\u51c0\u9500\u552e\u989d</th><th>\u542b\u5e7f\u544a\u5229\u6da6\u7387</th><th>\u64cd\u4f5c</th></tr></thead><tbody>';
+  D.ad_cut.slice(0,10).forEach(function(p){
+    var act=p.acos>0.50?'\u6682\u505c\u5e7f\u544a':(p.acos>0.40?'\u7ade\u4ef7\u964d40%':'\u7ade\u4ef7\u964d30%');
+    var cls=p.acos>0.50?'tr':'ty';
+    h+='<tr><td class="L m" style="font-size:11px">'+p.pa+'</td><td class="R m">'+fc(p.ad)+'</td><td class="R m hr">'+fp(p.acos)+'</td><td class="R m">'+fc(p.ns)+'</td><td class="R m">'+fp(p.pr)+'</td><td><span class="tg '+cls+'">'+act+'</span></td></tr>';
+  });
+  h+='</tbody></table></div>';
+
+  // A3: Price up
+  h+='<div style="border:1px solid #f39c12;border-radius:8px;padding:16px;margin-bottom:16px">';
+  h+='<h3 style="color:#f39c12;font-size:14px;margin-bottom:8px">\ud83d\udfe1 \u4f18\u5148\u7ea73\uff1a\u9ad8\u5229\u6da6\u7387\u4ea7\u54c1\u6d4b\u8bd5\u63d0\u4ef75%~8%</h3>';
+  h+='<div style="font-size:12px;margin-bottom:8px">\u4ee5\u4e0b\u7236ASIN\u5e73\u53f0\u5229\u6da6\u7387&gt;65%\u3001ACOS&lt;15%\u3001\u6709\u7a33\u5b9a\u9500\u91cf\u3002<br><b>\u64cd\u4f5c\uff1a</b>\u6bcf\u6b21\u63d0\u4ef75%\uff0c\u89c27\u5929\u8f6c\u5316\u7387\u3002\u4e0b\u964d&lt;10%\u5c31\u4fdd\u6301\u65b0\u4ef7\u3002</div>';
+  h+='<table style="width:auto"><thead><tr><th>\u7236ASIN</th><th>\u51c0\u9500\u552e\u989d</th><th>\u51c0\u9500\u91cf</th><th>\u5e73\u53f0\u5229\u6da6\u7387</th><th>ACOS</th><th>\u5efa\u8bae</th></tr></thead><tbody>';
+  if(D.price_up.length>0){
+    D.price_up.slice(0,10).forEach(function(p){
+      h+='<tr><td class="L m" style="font-size:11px">'+p.pa+'</td><td class="R m">'+fc(p.ns)+'</td><td class="R">'+fi(p.nsold)+'</td><td class="R m hg">'+fp(p.pr)+'</td><td class="R m">'+fp(p.acos)+'</td><td class="C"><span class="tg ty">+5%~8%</span></td></tr>';
+    });
+  } else { h+='<tr><td colspan="6" class="C" style="color:#999">\u6682\u65e0\u660e\u663e\u5019\u9009</td></tr>'; }
+  h+='</tbody></table></div>';
+
+  // A4: Bloated
+  h+='<div style="border:1px solid #f39c12;border-radius:8px;padding:16px;margin-bottom:16px">';
+  h+='<h3 style="color:#f39c12;font-size:14px;margin-bottom:8px">\ud83d\udfe1 \u4f18\u5148\u7ea74\uff1a\u7cbe\u7b80\u81c3\u80bf\u53d8\u4f53</h3>';
+  h+='<div style="font-size:12px;margin-bottom:8px">\u4ee5\u4e0b\u7236ASIN\u53d8\u4f53\u6570&gt;20\uff0c\u4f46\u5e73\u5747\u6bcf\u53d8\u4f53\u9500\u91cf&lt;2\u3002<br><b>\u64cd\u4f5c\uff1a</b>\u4fdd\u7559\u9500\u91cfTOP 30%~50%\u7684\u53d8\u4f53\uff0c\u5176\u4f59\u505c\u552e\u5e76\u79fb\u9664FBA\u5e93\u5b58\u3002</div>';
+  h+='<table style="width:auto"><thead><tr><th>\u7236ASIN</th><th>\u53d8\u4f53\u6570</th><th>\u603b\u9500\u91cf</th><th>\u6bcf\u53d8\u4f53\u9500\u91cf</th><th>\u51c0\u9500\u552e\u989d</th><th>\u5efa\u8bae\u780d\u6389</th></tr></thead><tbody>';
+  if(D.bloated.length>0){
+    D.bloated.slice(0,10).forEach(function(p){
+      var avg=p.n?p.nsold/p.n:0;
+      h+='<tr><td class="L m" style="font-size:11px">'+p.pa+'</td><td class="C">'+p.n+'</td><td class="R">'+fi(p.nsold)+'</td><td class="R hy">'+avg.toFixed(1)+'</td><td class="R m">'+fc(p.ns)+'</td><td class="C"><span class="tg ty">\u780d'+Math.round(p.n*0.5)+'\u4e2a\u53d8\u4f53</span></td></tr>';
+    });
+  } else { h+='<tr><td colspan="6" class="C" style="color:#999">\u65e0\u4e25\u91cd\u81c3\u80bf\u7684\u7236ASIN</td></tr>'; }
+  h+='</tbody></table></div>';
+
+  // A5: Returns
+  h+='<div style="border:1px solid #f39c12;border-radius:8px;padding:16px;margin-bottom:16px">';
+  h+='<h3 style="color:#f39c12;font-size:14px;margin-bottom:8px">\ud83d\udfe1 \u4f18\u5148\u7ea75\uff1a\u964d\u4f4e\u9ad8\u9000\u8d27\u7387\u4ea7\u54c1\uff08&gt;8%\uff09</h3>';
+  h+='<div style="font-size:12px;margin-bottom:8px"><b>\u64cd\u4f5c\uff1a</b>\u2460 Listing\u4e3b\u56fe\u589e\u52a0\u65e5\u672c\u5973\u6027\u4f53\u578b\u5c3a\u7801\u5bf9\u7167\u8868 \u2461 A+\u9875\u9762\u52a0\u5b9e\u7269\u989c\u8272\u5bf9\u6bd4\u56fe \u2462 \u4e94\u70b9\u63cf\u8ff0\u9996\u884c\u5199\u660e\u201c\u30b5\u30a4\u30ba\u9078\u3073\u306e\u30dd\u30a4\u30f3\u30c8\u201d</div>';
+  h+='<table style="width:auto"><thead><tr><th>\u7236ASIN</th><th>\u9500\u91cf</th><th>\u9000\u8d27</th><th>\u9000\u8d27\u7387</th><th>\u5176\u4ed6\u8d39\u7528</th><th>\u91cd\u70b9\u6539\u5584</th></tr></thead><tbody>';
+  if(D.high_ret.length>0){
+    D.high_ret.slice(0,10).forEach(function(p){
+      var rr=p.ret/(p.nsold+p.ret)*100;
+      var fix=rr>12?'\u5c3a\u7801\u8868+\u6750\u8d28\u8bf4\u660e':'\u5c3a\u7801\u8868\u4f18\u5316';
+      h+='<tr><td class="L m" style="font-size:11px">'+p.pa+'</td><td class="R">'+fi(p.nsold)+'</td><td class="R hr">'+fi(p.ret)+'</td><td class="R hr">'+rr.toFixed(1)+'%</td><td class="R m">'+fc(p.oth)+'</td><td><span class="tg ty">'+fix+'</span></td></tr>';
+    });
+  } else { h+='<tr><td colspan="6" class="C" style="color:#999">\u65e0\u9000\u8d27\u7387&gt;8%\u7684\u7236ASIN</td></tr>'; }
+  h+='</tbody></table></div>';
+
+  // A6: Stars
+  h+='<div style="border:1px solid #27ae60;border-radius:8px;padding:16px;margin-bottom:16px">';
+  h+='<h3 style="color:#27ae60;font-size:14px;margin-bottom:8px">\ud83d\udfe2 \u4f18\u5148\u7ea76\uff1a\u52a0\u5927\u6295\u5165\u660e\u661f\u4ea7\u54c1</h3>';
+  h+='<div style="font-size:12px;margin-bottom:8px"><b>\u64cd\u4f5c\uff1a</b>\u2460 \u786e\u4fddFBA\u5e93\u5b58\u5145\u8db3 \u2461 \u5e7f\u544a\u9884\u7b97+10%~20% \u2462 \u5f00Coupon 5%~8%\u51b2\u6392\u540d</div>';
+  h+='<table style="width:auto"><thead><tr><th>\u7236ASIN</th><th>\u51c0\u9500\u552e\u989d</th><th>\u5229\u6da6</th><th>\u5229\u6da6\u7387</th><th>ACOS</th><th>\u64cd\u4f5c</th></tr></thead><tbody>';
+  if(D.stars.length>0){
+    D.stars.slice(0,10).forEach(function(p){
+      h+='<tr class="hg"><td class="L m" style="font-size:11px">'+p.pa+'</td><td class="R m">'+fc(p.ns)+'</td><td class="R m pp">'+fc(p.p)+'</td><td class="R m pp">'+fp(p.pr)+'</td><td class="R m">'+fp(p.acos)+'</td><td><span class="tg tgn">\u52a0\u9884\u7b97+\u8865\u8d27</span></td></tr>';
+    });
+  } else { h+='<tr><td colspan="6" class="C" style="color:#999">\u6682\u65e0\u540c\u65f6\u6ee1\u8db3\u9ad8\u5229\u6da6+\u9ad8\u9500\u552e+\u4f4eACOS\u7684\u7236ASIN</td></tr>'; }
+  h+='</tbody></table></div>';
+
+  // Summary
+  var ms=D.aged_zero_fee/months+D.ad_cut_save/months;
+  h+='<div style="background:#232f3e;color:#fff;border-radius:8px;padding:20px;margin-top:8px">';
+  h+='<h3 style="font-size:14px;margin-bottom:10px">\ud83d\udccc \u9884\u4f30\u6708\u5ea6\u5f71\u54cd\u6c47\u603b</h3>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;text-align:center">';
+  h+='<div><div style="font-size:11px;opacity:.7">\u79fb\u9664\u8d85\u9f84\u5e93\u5b58\u53ef\u7701/\u6708</div><div style="font-size:20px;font-weight:700;color:#ff9900">'+fm(D.aged_zero_fee/months)+'</div></div>';
+  h+='<div><div style="font-size:11px;opacity:.7">\u4f18\u5316\u5e7f\u544a\u53ef\u7701/\u6708</div><div style="font-size:20px;font-weight:700;color:#ff9900">'+fm(D.ad_cut_save/months)+'</div></div>';
+  h+='<div><div style="font-size:11px;opacity:.7">\u5408\u8ba1\u53ef\u6539\u5584/\u6708</div><div style="font-size:20px;font-weight:700;color:#ff9900">'+fm(ms)+'</div></div>';
+  h+='</div>';
+  h+='<p style="font-size:11px;opacity:.6;margin-top:10px;text-align:center">* \u4ee5\u4e0a\u4e3a\u4fdd\u5b88\u4f30\u7b97</p>';
+  h+='</div></div></div>';
+
+  document.getElementById('report').innerHTML=h;
+}
+
+function st(id){
+  document.querySelectorAll('.tc').forEach(function(e){e.classList.remove('a');});
+  document.querySelectorAll('.tb').forEach(function(e){e.classList.remove('a');});
+  document.getElementById(id).classList.add('a');
+  event.target.classList.add('a');
+}
+</script></body></html>

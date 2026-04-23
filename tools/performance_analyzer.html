@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CID Performance Analysis Report</title>
+<style>
+:root{--primary:#2563eb;--primary-light:#dbeafe;--success:#16a34a;--success-light:#dcfce7;--danger:#dc2626;--danger-light:#fee2e2;--warning:#d97706;--warning-light:#fef3c7;--info:#7c3aed;--info-light:#ede9fe;--g50:#f9fafb;--g100:#f3f4f6;--g200:#e5e7eb;--g300:#d1d5db;--g500:#6b7280;--g700:#374151;--g900:#111827}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--g50);color:var(--g900);line-height:1.6}
+.ua{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px}
+.uc{background:#fff;border-radius:16px;padding:48px;max-width:700px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center}
+.uc h1{font-size:28px;margin-bottom:8px}
+.sub{color:var(--g500);margin-bottom:32px;font-size:15px}
+.fi{display:grid;gap:16px;text-align:left;margin-bottom:24px}
+.fg{background:var(--g50);border:1px solid var(--g200);border-radius:10px;padding:16px}
+.fg label{display:block;font-weight:600;font-size:13px;color:var(--g700);margin-bottom:8px}
+.fg input[type="file"]{width:100%;font-size:13px}
+#gb{background:var(--primary);color:#fff;border:none;padding:14px 48px;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s}
+#gb:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,.3)}
+#upload-status{margin-top:16px;font-size:13px;color:var(--danger)}
+#report-section{max-width:1400px;margin:0 auto;padding:24px}
+@media print{
+  #upload-section{display:none!important}
+  button{display:none!important}
+  input{display:none!important}
+  #report-section{padding:0!important}
+  body{background:#fff!important}
+  div[style*="box-shadow"]{box-shadow:none!important;break-inside:avoid}
+  table{break-inside:auto}
+  tr{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="upload-section" class="ua">
+    <div class="uc">
+      <h1>📊 CID Performance Analysis Tool</h1>
+      <p class="sub">上传CSV文件生成可视化分析报告</p>
+      <div style="text-align:left;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:16px 20px;margin-bottom:24px;font-size:13px;line-height:1.8;color:#0c4a6e">
+        <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:#0369a1">📖 使用说明</div>
+        <ol style="padding-left:18px;margin:0">
+          <li>打开 <a href="https://us-east-1.quicksight.aws.amazon.com/sn/account/isscentralqs/dashboards/f4d37e05-23d2-4e89-9d85-98fcd0b915fc" target="_blank" style="color:#2563eb;text-decoration:underline">CN Paid Service MBR Dashboard</a>，输入 CID 并切换至 AI tab</li>
+          <li>下载 4 个 CSV 文件：CID、ITK、ITK by Price Band、ASIN</li>
+          <li>将文件上传至下方对应位置，点击「生成报告」</li>
+        </ol>
+        <div style="margin-top:8px;font-weight:600;color:#0369a1">📋 报告内容</div>
+        <ul style="padding-left:18px;margin:4px 0 0">
+          <li>CID / ITK / ASIN 维度 YoY &amp; MoM 分析</li>
+          <li>季度 Top Mover &amp; Shaker</li>
+          <li>单 ASIN 趋势及 Benchmark 对比（输入 ASIN 即可）</li>
+        </ul>
+        <div style="margin-top:8px;color:#6b7280;font-size:12px">如有疑问，请联系 cyangb@</div>
+      </div>
+      <div class="fi">
+        <div class="fg"><label>CID Performance CSV</label><input type="file" id="cid-file" accept=".csv"/></div>
+        <div class="fg"><label>ITK/BN Performance CSV</label><input type="file" id="itkbn-file" accept=".csv"/></div>
+        <div class="fg"><label>ITK/BN Performance by Price Band CSV</label><input type="file" id="itkbn-b-file" accept=".csv"/></div>
+        <div class="fg"><label>ASIN Performance CSV</label><input type="file" id="asin-file" accept=".csv"/></div>
+      </div>
+      <button id="gb" onclick="generateReport()">生成分析报告</button>
+      <div id="upload-status"></div>
+    </div>
+  </div>
+  <div id="report-section" style="display:none"></div>
+</div>
+<script src="analyzer.js"></script>
+</body>
+</html>

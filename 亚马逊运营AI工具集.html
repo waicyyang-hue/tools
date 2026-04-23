@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>亚马逊运营 AI 工具集</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:#0a0e27;color:#e0e0e0;min-height:100vh;overflow-x:hidden}
+.bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;overflow:hidden}
+.bg .c{position:absolute;border-radius:50%;animation:fl 20s infinite ease-in-out}
+.bg .c:nth-child(1){width:600px;height:600px;top:-10%;left:-5%;background:radial-gradient(circle,rgba(99,102,241,.15),transparent 70%)}
+.bg .c:nth-child(2){width:400px;height:400px;top:50%;right:-10%;animation-delay:-7s;background:radial-gradient(circle,rgba(236,72,153,.1),transparent 70%)}
+.bg .c:nth-child(3){width:500px;height:500px;bottom:-15%;left:30%;animation-delay:-14s;background:radial-gradient(circle,rgba(34,211,238,.1),transparent 70%)}
+@keyframes fl{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-30px) scale(1.05)}66%{transform:translate(-20px,20px) scale(.95)}}
+.wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:40px 20px}
+.hd{text-align:center;margin-bottom:16px}
+.hd h1{font-size:2.4rem;font-weight:700;background:linear-gradient(135deg,#6366f1,#ec4899,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px}
+.hd p{font-size:1.05rem;color:#94a3b8;max-width:600px;margin:0 auto}
+.contact{text-align:center;margin-bottom:50px;font-size:.9rem;color:#64748b}
+.contact a{color:#818cf8;text-decoration:none}
+
+/* Timeline line */
+.tl{position:relative;padding:20px 0}
+.tl::before{content:'';position:absolute;left:50%;transform:translateX(-50%);top:0;bottom:0;width:3px;background:linear-gradient(to bottom,#6366f1,#ec4899,#22d3ee,#10b981);border-radius:3px}
+
+.phase{position:relative;margin-bottom:70px;opacity:0;transform:translateY(30px);animation:fiu .6s forwards}
+.phase:nth-child(1){animation-delay:.1s}.phase:nth-child(2){animation-delay:.3s}.phase:nth-child(3){animation-delay:.5s}.phase:nth-child(4){animation-delay:.7s}
+@keyframes fiu{to{opacity:1;transform:translateY(0)}}
+
+.phase-dot-wrap{position:absolute;left:50%;transform:translateX(-50%);top:-18px;z-index:2}
+.phase-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:0 0 20px rgba(99,102,241,.4)}
+.ph{text-align:center;margin-bottom:28px;padding-top:30px}
+.ph h2{font-size:1.45rem;font-weight:600;color:#f1f5f9;margin-bottom:4px}
+.ph .sub{font-size:.85rem;color:#64748b}
+
+.grid{display:flex;flex-wrap:wrap;gap:22px;justify-content:center}
+
+.card{display:block;text-decoration:none;color:inherit;cursor:pointer;background:rgba(30,34,64,.7);backdrop-filter:blur(12px);border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:26px 22px;width:260px;text-align:center;position:relative;overflow:hidden;transition:all .3s}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:16px 16px 0 0}
+.card:hover{transform:translateY(-5px);border-color:rgba(99,102,241,.5);box-shadow:0 12px 40px rgba(99,102,241,.15)}
+.card .icon{width:60px;height:60px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.7rem;margin:0 auto 14px}
+.card h3{font-size:1.05rem;font-weight:600;color:#f1f5f9;margin-bottom:7px}
+.card .desc{font-size:.82rem;color:#94a3b8;line-height:1.55}
+.card .tags{margin-top:10px;display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+.card .tag{font-size:.68rem;padding:3px 8px;border-radius:20px;background:rgba(99,102,241,.15);color:#a5b4fc}
+.card .file-hint{margin-top:12px;font-size:.75rem;color:#64748b;background:rgba(255,255,255,.05);padding:6px 10px;border-radius:8px;word-break:break-all}
+
+/* Coming soon */
+.card.soon{opacity:.45;cursor:default}
+.card.soon:hover{transform:none;box-shadow:none;border-color:rgba(99,102,241,.2)}
+.soon-badge{font-size:.68rem;padding:2px 10px;border-radius:20px;background:rgba(251,191,36,.2);color:#fbbf24;display:inline-block;margin-top:8px}
+.paid-badge{font-size:.68rem;padding:2px 10px;border-radius:20px;background:rgba(139,92,246,.25);color:#c4b5fd;display:inline-block;margin-top:8px}
+
+/* Phase colors */
+.p1 .phase-dot{background:linear-gradient(135deg,#6366f1,#818cf8)}
+.p1 .card::before{background:linear-gradient(90deg,#6366f1,#818cf8)}
+.p1 .card .icon{background:rgba(99,102,241,.15)}
+
+.p2 .phase-dot{background:linear-gradient(135deg,#ec4899,#f472b6)}
+.p2 .card::before{background:linear-gradient(90deg,#ec4899,#f472b6)}
+.p2 .card .icon{background:rgba(236,72,153,.15)}
+
+.p3 .phase-dot{background:linear-gradient(135deg,#22d3ee,#67e8f9)}
+.p3 .card::before{background:linear-gradient(90deg,#22d3ee,#67e8f9)}
+.p3 .card .icon{background:rgba(34,211,238,.15)}
+
+.p4 .phase-dot{background:linear-gradient(135deg,#10b981,#34d399)}
+.p4 .card::before{background:linear-gradient(90deg,#10b981,#34d399)}
+.p4 .card .icon{background:rgba(16,185,129,.15)}
+
+.ft{text-align:center;margin-top:70px;padding:20px;color:#475569;font-size:.82rem}
+
+@media(max-width:768px){.hd h1{font-size:1.7rem}.tl::before{left:20px}.phase-dot-wrap{left:20px;transform:none}.card{width:100%}}
+</style>
+</head>
+<body>
+<div class="bg"><div class="c"></div><div class="c"></div><div class="c"></div></div>
+<div class="wrap">
+
+<header class="hd">
+    <h1>🛠️ 亚马逊运营 AI 工具集</h1>
+    <p>按卖家生命周期阶段组织，覆盖从选品到成熟期的智能化运营工具</p>
+</header>
+<div class="contact">如有问题请联系 <a href="#">cyangb@</a></div>
+
+<div class="tl">
+
+<!-- 选品调研期 -->
+<div class="phase p1">
+    <div class="phase-dot-wrap"><div class="phase-dot">🔍</div></div>
+    <div class="ph"><h2>选品调研期</h2><div class="sub">Market Research & Product Selection</div></div>
+    <div class="grid">
+        <a href="tools/unmet_demand_analyzer.html" target="_blank" class="card">
+            <div class="icon">📊</div>
+            <h3>Unmet Demand 分析</h3>
+            <p class="desc">挖掘市场未被满足的需求，发现蓝海机会与产品差异化方向</p>
+            <div class="tags"><span class="tag">需求缺口</span><span class="tag">市场机会</span></div>
+        </a>
+        <div class="card soon">
+            <div class="icon">🧮</div>
+            <h3>利润测算工具</h3>
+            <p class="desc">FBA费用、头程、关税一站式利润模拟</p>
+            <span class="soon-badge">即将上线</span>
+        </div>
+    </div>
+</div>
+
+<!-- 运营优化期 -->
+<div class="phase p2">
+    <div class="phase-dot-wrap"><div class="phase-dot">⚙️</div></div>
+    <div class="ph"><h2>运营优化期</h2><div class="sub">Operations & Optimization</div></div>
+    <div class="grid">
+        <a href="tools/review_analysis.html" target="_blank" class="card">
+            <div class="icon">💬</div>
+            <h3>Review 智能分析</h3>
+            <p class="desc">AI解析客户评论，生成客户画像、使用场景、未满足需求等深度洞察</p>
+            <div class="tags"><span class="tag">客户画像</span><span class="tag">使用场景</span><span class="tag">需求洞察</span></div>
+        </a>
+        <a href="tools/return_analysis.html" target="_blank" class="card">
+            <div class="icon">📦</div>
+            <h3>退货率分析</h3>
+            <p class="desc">深度分析退货原因，定位产品质量与listing描述问题</p>
+            <div class="tags"><span class="tag">退货原因</span><span class="tag">质量追踪</span></div>
+        </a>
+        <a href="tools/performance_analyzer.html" target="_blank" class="card">
+            <div class="icon">🏪</div>
+            <h3>店铺诊断</h3>
+            <p class="desc">对比类目大盘数据，全面诊断店铺运营健康度与增长潜力</p>
+            <div class="tags"><span class="tag">类目对比</span><span class="tag">大盘分析</span><span class="tag">店铺诊断</span></div>
+            <span class="paid-badge">Paid Only</span>
+        </a>
+    </div>
+</div>
+
+<!-- 增长盈利期 -->
+<div class="phase p3">
+    <div class="phase-dot-wrap"><div class="phase-dot">📈</div></div>
+    <div class="ph"><h2>增长盈利期</h2><div class="sub">Growth & Profitability</div></div>
+    <div class="grid">
+        <a href="tools/PnL_Report.html" target="_blank" class="card">
+            <div class="icon">💰</div>
+            <h3>PNL 损益分析</h3>
+            <p class="desc">全链路损益分析，含ACOS预警、超龄库存预警等智能告警</p>
+            <div class="tags"><span class="tag">损益分析</span><span class="tag">ACOS预警</span><span class="tag">库存预警</span></div>
+        </a>
+        <div class="card soon">
+            <div class="icon">📦</div>
+            <h3>备货及库存分析</h3>
+            <p class="desc">智能备货建议、库存周转分析、断货风险预警</p>
+            <span class="soon-badge">即将上线</span>
+        </div>
+        <div class="card soon">
+            <div class="icon">🎯</div>
+            <h3>广告优化助手</h3>
+            <p class="desc">智能分析广告数据，自动生成优化建议</p>
+            <span class="soon-badge">即将上线</span>
+        </div>
+    </div>
+</div>
+
+<!-- 品牌与内容 -->
+<div class="phase p4">
+    <div class="phase-dot-wrap"><div class="phase-dot">🏆</div></div>
+    <div class="ph"><h2>品牌与内容</h2><div class="sub">Brand Building & Content Marketing</div></div>
+    <div class="grid">
+        <a href="tools/article_weekly.html" target="_blank" class="card">
+            <div class="icon">✍️</div>
+            <h3>公众号爆文周推</h3>
+            <p class="desc">AI筛选行业热文，每周精选推荐，助力内容营销与品牌传播</p>
+            <div class="tags"><span class="tag">内容营销</span><span class="tag">热文精选</span></div>
+        </a>
+    </div>
+</div>
+
+</div>
+
+<footer class="ft">
+    <p>Powered by AI · 持续迭代中 🚀</p>
+</footer>
+
+</div>
+</body>
+</html>

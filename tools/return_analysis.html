@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>亚马逊退货分析工具</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:#fff;padding:28px 0;text-align:center}
+.header h1{font-size:26px;font-weight:600;letter-spacing:1px}
+.header p{font-size:14px;color:#a0b4d0;margin-top:6px}
+.container{max-width:1100px;margin:0 auto;padding:24px 16px}
+.card{background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);padding:28px;margin-bottom:20px}
+.upload-area{border:2px dashed #c0c8d8;border-radius:10px;padding:40px;text-align:center;cursor:pointer;transition:.2s;position:relative}
+.upload-area:hover,.upload-area.dragover{border-color:#3b82f6;background:#eff6ff}
+.upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-icon{font-size:42px;margin-bottom:10px}
+.upload-area p{color:#666;font-size:14px}
+.upload-area .filename{color:#16a34a;font-weight:600;margin-top:8px}
+.input-row{display:flex;gap:12px;align-items:center;margin-top:18px}
+.input-row input{flex:1;padding:12px 16px;border:1.5px solid #d1d5db;border-radius:8px;font-size:15px;outline:none;transition:.2s}
+.input-row input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.btn{padding:12px 28px;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:.2s}
+.btn-primary{background:#3b82f6;color:#fff}.btn-primary:hover{background:#2563eb}.btn-primary:disabled{background:#93c5fd;cursor:not-allowed}
+.btn-export{background:#10b981;color:#fff;margin-top:16px}.btn-export:hover{background:#059669}
+.results{display:none}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-radius:10px;padding:20px;text-align:center;border:1px solid #e2e8f0}
+.stat-card .label{font-size:13px;color:#64748b;margin-bottom:6px}
+.stat-card .value{font-size:28px;font-weight:700}
+.stat-card .value.green{color:#16a34a}.stat-card .value.red{color:#dc2626}.stat-card .value.blue{color:#2563eb}.stat-card .value.orange{color:#ea580c}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+.chart-box{background:#fff;border-radius:10px;padding:20px;border:1px solid #e2e8f0}
+.chart-box h3{font-size:15px;color:#475569;margin-bottom:14px}
+.section-title{font-size:18px;font-weight:600;color:#1e293b;margin:24px 0 14px;padding-left:12px;border-left:4px solid #3b82f6}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{background:#f8fafc;color:#475569;font-weight:600;text-align:left;padding:12px;border-bottom:2px solid #e2e8f0}
+td{padding:10px 12px;border-bottom:1px solid #f1f5f9}
+tr:hover td{background:#f8fafc}
+.tag{display:inline-block;background:#eff6ff;color:#2563eb;padding:3px 10px;border-radius:20px;font-size:12px;margin:2px}
+.scard{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:18px;margin-bottom:12px}
+.scard .stitle{font-weight:600;color:#166534;margin-bottom:6px;font-size:15px}
+.scard .sdesc{color:#15803d;font-size:14px;line-height:1.7}
+.pri{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-left:8px}
+.pri-h{background:#fef2f2;color:#dc2626}.pri-m{background:#fffbeb;color:#d97706}.pri-l{background:#f0fdf4;color:#16a34a}
+.clist{max-height:300px;overflow-y:auto}
+.citem{padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#475569}
+.citem:nth-child(odd){background:#fafbfc}
+.empty{text-align:center;padding:60px 20px;color:#94a3b8}
+@media(max-width:768px){.charts-row{grid-template-columns:1fr}.input-row{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📦 亚马逊退货分析工具</h1>
+  <p>上传退货报告 CSV → 输入 ASIN → 基于客户评论深度分析退货原因与改进建议</p>
+</div>
+<div class="container">
+  <div class="card" style="padding:20px 28px;font-size:14px;color:#475569;line-height:1.8">
+    <div style="font-weight:600;font-size:15px;color:#1e293b;margin-bottom:10px">📖 使用说明</div>
+    <div style="margin-bottom:8px"><span style="font-weight:600;color:#1e293b">1. 下载FBA退货报告</span><br>
+      <span style="margin-left:16px">路径：卖家后台 → 订单 → 退货与价值回收 → 洞察与机遇 → 资源中心 → 亚马逊物流退货报告 → 下载</span><br>
+      <span style="margin-left:16px">建议日期范围：最近12个月</span><br>
+      <span style="margin-left:16px">格式：CSV</span>
+    </div>
+    <div style="margin-bottom:8px"><span style="font-weight:600;color:#1e293b">2. 上传并查询</span><br>
+      <span style="margin-left:16px">上传CSV文件 → 点击"查看退货排名"查看退货率最高的ASIN</span><br>
+      <span style="margin-left:16px">输入需要查询的子ASIN → 点击"开始分析"查看详细退货原因</span><br>
+      <span style="margin-left:16px">查询父ASIN时，输入多个子ASIN，用逗号或空格分隔</span>
+    </div>
+    <div style="color:#94a3b8;font-size:13px">3. 如有问题，请联系 cyangb@</div>
+  </div>
+  <div class="card">
+    <div class="upload-area" id="dropZone">
+      <input type="file" id="csvFile" accept=".csv">
+      <div class="upload-icon">📄</div>
+      <p>点击或拖拽上传 CSV 退货报告</p>
+      <div class="filename" id="fileName"></div>
+    </div>
+    <div style="text-align:center;margin-top:18px">
+      <button class="btn btn-primary" id="rankBtn" disabled>📊 查看退货排名</button>
+    </div>
+  </div>
+  <div class="card" id="rankResults" style="display:none"></div>
+  <div class="card">
+    <div style="font-weight:600;font-size:15px;color:#1e293b;margin-bottom:12px">🔍 ASIN深度分析（如需查询父ASIN，可输入多个子ASIN，用逗号或空格分隔）</div>
+    <div class="input-row">
+      <input type="text" id="asinInput" placeholder="输入 ASIN，多个用逗号或空格分隔（如 B0F1F6TWH5, B0DRFD1ZQW）"/>
+      <button class="btn btn-primary" id="analyzeBtn" disabled>开始分析</button>
+    </div>
+  </div>
+  <div class="results" id="results">
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="charts-row">
+      <div class="chart-box"><h3>退货原因大类分布</h3><canvas id="reasonChart"></canvas></div>
+      <div class="chart-box"><h3>退货原因小类分布（去除无效项）</h3><canvas id="reasonChart2"></canvas></div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-box"><h3>退货状态分布（商品处置）</h3><canvas id="dispositionChart"></canvas></div>
+      <div class="chart-box"><h3>退货时间趋势</h3><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-box"><h3>客户评论高频关键词</h3><canvas id="keywordChart"></canvas></div>
+    </div>
+    <div class="section-title">退货原因明细（基于客户评论）</div>
+    <div class="card" id="reasonTable"></div>
+    <div class="section-title">客户原始评论</div>
+    <div class="card"><div class="clist" id="commentList"></div></div>
+    <div class="section-title">🎯 针对性改进措施</div>
+    <div id="suggestions"></div>
+    <button class="btn btn-export" id="exportBtn">� 导出分析报告</button>
+  </div>
+  <div class="empty" id="emptyState"><div style="font-size:48px;margin-bottom:12px">📊</div><p>请上传 CSV 文件并输入 ASIN 开始分析</p></div>
+</div>
+<script>
+let csvData = [];
+let reasonChart, reasonChart2, dispositionChart, trendChart, keywordChart;
+const DISP = {'SELLABLE':'可售（退回库存）','CUSTOMER_DAMAGED':'客户损坏','CARRIER_DAMAGED':'承运商损坏','WAREHOUSE_DAMAGED':'仓库损坏','DEFECTIVE':'有缺陷','IMMEDIATE_DONATION':'直接捐赠','DISPOSAL_COMPLETE':'已销毁'};
+
+/*=== 核心：基于 customer-comments 全字段综合分析，最小颗粒度归类 ===
+ * 规则按优先级从高到低排列：具体描述 > 笼统描述
+ * 每条评论只归入一个最精确的类别
+ * 所有 | 分隔的 segments 合并为整体文本后匹配
+ */
+const RULES = [
+  // —— 尺寸类（细分大/小/长/短/宽/窄）——
+  { id:'size_small',  label:'尺寸偏小',  re:/too small|smaller than|偏小|太小|very small|much smaller|incredibly small|ridiculously small|so small|item.?small|smakk|muy peque|\bsmall\b|to small|size to small|samller|tinier|not big enough|not large enough/i },
+  { id:'size_big',    label:'尺寸偏大',  re:/too big|too large|bigger than|larger than|偏大|太大|much larger|way too big|demasiado grande|too large for|\bto big\b|large for my|need.?bigger|need.?one.?of.?the.?pieces.?to.?be.?bigger|not small enough/i },
+  { id:'size_short',  label:'长度偏短',  re:/too short|not long enough|shorter than|偏短|太短|not enough length|\bto short\b/i },
+  { id:'size_long',   label:'长度偏长',  re:/too long(?!.{0,5}to arrive)|length.?too long|longer than/i },
+  { id:'size_narrow', label:'宽度偏窄',  re:/too narrow|not wide enough|width.?short|偏窄|narrower than/i },
+  { id:'size_wide',   label:'宽度偏宽',  re:/too wide|wider than/i },
+  { id:'size_thick',  label:'厚度偏厚',  re:/too thick|too fluffy|too shaggy|pile.?higher than/i },
+  { id:'size_wrong',  label:'尺寸不符（买家选错）', re:/incorrect size|wrong size|size incorrect|not.?right size|not correct size|size.?off|wrong dimension|size.?inaccurate|measurements.?wrong|bought.?wrong size|ordered.?wrong size|purchased.?wrong size|mauvaise grandeur/i },
+
+  // —— 颜色类（细分偏浅/偏深/不匹配/与图片不符）——
+  { id:'color_light', label:'颜色偏浅/偏淡', re:/lighter than|too light(?! weight)|very light in color|faded|washed out|more.?peach|too.?pink|偏浅|偏淡|color.?light|color.?is.?too.?peach|brass was lighter/i },
+  { id:'color_dark',  label:'颜色偏深/偏暗', re:/darker than|too dark|much darker|color.?dark|偏深|偏暗/i },
+  { id:'color_wrong', label:'颜色与描述/图片不符', re:/wrong color|color.?wrong|color.?different|color.?not.?as|color.?not.?same|color.?not.?match|color.?not.?right|color.?not.?expect|color.?not.?descri|color.?off|off.?color|colour.?not|colour.?different|colour.?doesnt|couleur|la couleur|wrong.?shade|not.?right.?color|colors?.?don.?t match|color.?inaccurate|色差|颜色不对|颜色不符|color.?looks.?different|colour does not|color.?is.?pink|not the.?color|the color|wrong colour|don.?t like.?colour|changing color|color.?had.?purple|colors?.?were|muted color|orange not bright|this is not black|shades?.?were.?off|not.?as.?expected.{0,5}color|color.?yellow|color\.(?:\s|$)/i },
+  { id:'color_dislike',label:'不喜欢颜色/颜色不搭', re:/don.?t like.?color|didn.?t like.?color|doesnt match|doesn.?t match|not match.?decor|not.?match.?bathroom|not.?match.?kitchen|didn.?t match|color.?doesn.?t work|colour.?incompatible|incompatible avec|didnt match.?orange|colors?.?will not work|color.?not.?work|decided against.?color|different color|need.?darker|need.?lighter|kept different color|want.?different color|didn.?t like the color/i },
+
+  // —— 材质/质量类 ——
+  { id:'quality_thin', label:'材质太薄/单薄', re:/too thin|very thin|\bthin\b|to thin|thin material|cheaply made|cheap.?feeling|cheap.?quality|feels?.?cheap|looks?.?cheap|cheap.?looking|feels?.?plastic|plastic.?looking|too plastic|like.?a.?towel|like.?a.?blanket|like.?bath.?mat|not.?a.?rug|beach.?mat|dollar store|very cheap material|feels?.?very.?plastic|plasticy/i },
+  { id:'quality_poor', label:'质量差/做工粗糙', re:/poor quality|bad quality|low quality|not.?good quality|quality.?not.?good|quality.?not.?great|quality.?not.?adequate|quality.?unacceptable|quality.?poor|flimsy|fell apart|loose threads|peeling|shedding|sheds|not.?durable|la qualit|\bquality\b|not good\b|not great\b|quilty|very cheap\b|cheapest|not.?quality|no good\b/i },
+  { id:'quality_slip', label:'防滑效果差/易滑', re:/slip|slippery|non.?slip.?not|no.?rubber.?backing|tripping hazard/i },
+  { id:'quality_smell',label:'有异味/化学气味', re:/smell|odor|stink|chemical|气味|味道|臭/i },
+  { id:'quality_notflat',label:'无法平铺/有折痕', re:/not.?lay flat|doesn.?t lay flat|won.?t lay flat|won.?t.?flat|wrinkle|crease|fold|curl|rolling|keeps rolling|won.?t flatten|lay.?flat/i },
+  { id:'quality_vacuum',label:'无法正常吸尘', re:/vacuum|vaccuum|sucked up/i },
+  { id:'quality_notwater',label:'不防水/防水效果差', re:/not.?waterproof|not.?water.?proof|condensation|soaked/i },
+  { id:'quality_wind', label:'太轻/易被风吹', re:/blow away|too light.?weight|lightweight.*wind|wind.*blow|light.*wind/i },
+
+  // —— 产品缺陷类 ——
+  { id:'defect_damage',label:'收到时已损坏', re:/damaged|torn|ripped|stain|dirty|broken|cracked|package.?rip|zipper.?broken|grey.?dots/i },
+  { id:'defect_func', label:'功能故障/缺陷', re:/defective|wiring.?faulty|not.?work|doesn.?t work|did not work|malfunction|faulty/i },
+  { id:'defect_fade',  label:'褪色/图案褪色', re:/color.?faded|pattern.?faded|fade along/i },
+
+  // —— 与预期不符（具体子类已在上面覆盖，这里兜底）——
+  { id:'expect_material',label:'材质与预期不符', re:/material.?not.?as|material.?not.?expect|material.?not.?what|material.?different|not.?right.?material|wrong.?material|fabric.?not|not.?actual.?carpet|didn.?t know.?plastic|woven.?rug.?plastic|not.?fiber|matériel|\bmaterial\b|plastic\b|plasticy|fabric.?is.?not|i don.?t like the material|wrong type of material|dislike material|different material|\bcotton\b|memory foam|not.?right material/i },
+  { id:'expect_look',  label:'外观与预期不符', re:/look.?different|doesn.?t look|didnt look|not.?look.?like|photos?.?misleading|picture.?different|photos?.?different|AI.?generated|not.?as.?pictured|website.?description.?not.?accurate|not.?as.?described|not.?as.?advertised|not.?as.?expressed|WRONG.?DISCRI/i },
+  { id:'expect_cushion',label:'厚度/缓冲不足', re:/not.?thick|not.?padded|not.?cushion|not.?plush|cushion.?insufficient|not.?as.?thick|thinner than|not.?enough.?thickness|not.?anti.?fatigue|not.?comfort|not.?memory.?foam|without.?cushion/i },
+
+  // —— 图案/设计不喜欢 ——
+  { id:'design_dislike',label:'不喜欢图案/设计', re:/don.?t like.?pattern|didn.?t like.?pattern|need different pattern|wrong print|pattern.?too busy|don.?t like.?design|didn.?t like.?design|design.?not|pattern.?not|ugly|hideous|don.?t like the look|didn.?t like the look|\bpattern\b|\bdesign\b/i },
+
+  // —— 不适合/不需要 ——
+  { id:'not_fit_space',label:'不适合使用空间', re:/doesn.?t fit|didn.?t fit|not fit|didnt fit|won.?t fit|not.?work.?for|not.?suitable|not.?right.?for|doesn.?t work in|not.?going to work|not.?useful|cant use|can.?t use|toilet.?does not fit/i },
+  { id:'changed_mind', label:'改变主意/不想要了', re:/changed?.?mind|no longer need|no longer want|don.?t need|don.?t want|decided against|decided not|just decided|not needed|not.?opened|never used|do not need|dont need|no longer like|not happy|don.?t like\b|didn.?t like\b|i don.?t like it|i don.?t like that|not what i wanted|not what i expected|not what i thought|not what we thought|wasn.?t what|not what expected/i },
+  { id:'expect_generic',label:'与预期不符（笼统）', re:/not as expected|not.?as.?expected/i },
+  { id:'found_other',  label:'找到了其他替代品', re:/found.?(?:a |another |other |something |better |different )(?!price)|chose.?different|choose.?different|bought.?different|ordered.?different|purchased.?different|went.?different|different route|from walmart|from.?local/i },
+  { id:'found_price',  label:'找到更低价格', re:/better price|cheaper|lower price|found.?price|10%.?cheaper/i },
+
+  // —— 下错单/多买 ——
+  { id:'order_wrong',  label:'买错了/下错单', re:/ordered?.?wrong|ordered?.?by mistake|accidental|by mistake|purchased?.?wrong|bought.?wrong|didn.?t mean|didn.?t realize|ordered?.?mistake|I bought the wrong|order.?my mistake|purchased by accident|did not mean to order/i },
+  { id:'order_dup',    label:'重复购买/多买了', re:/duplicate|ordered?.?too many|ordered?.?extra|bought.?multiple|ordered?.?twice|ordered?.?2|got too many|already.?have|received.?as.?gift|only needed one|bought.?2.?different|ordered 3 instead|ordered one extra/i },
+
+  // —— 物流/配送 ——
+  { id:'delivery_late',label:'配送延迟/太慢', re:/too late|came late|delivered.?late|took.?forever|took.?too long|delayed|shipped.?late|needed.?sooner|item was late|took to long to arrive/i },
+  { id:'delivery_wrong',label:'发错商品', re:/wrong item|wrong.?item.?deliver|sent.?wrong|received.?wrong|mauvais article/i },
+  { id:'pkg_damage',   label:'包装/运输损坏', re:/package.?damage|package.?rip|shipped.?without.?box|no.?protection|not.?packaged/i },
+
+  // —— 其他 ——
+  { id:'gift_return',  label:'礼物退货', re:/this is a gift|gift/i },
+
+  // —— 无有效信息（N/A、无意义字符等）——
+  { id:'no_useful_info',label:'无有效信息', re:/^n\/a$|^na$|^no$|^nothing$|^ok$|^refund$|^return$|^xx+$|^thx$|^thanks?$|^\.$|^b\/$|^sie$|^on amazon|^we used|^\.+$|^\s*$/i },
+
+  // —— 未留评论 ——
+  { id:'no_comment',   label:'未留评论', re:/^$/ },
+];
+
+// 大类分组映射
+const GROUPS = {
+  size_small:'尺寸问题', size_big:'尺寸问题', size_short:'尺寸问题', size_long:'尺寸问题',
+  size_narrow:'尺寸问题', size_wide:'尺寸问题', size_thick:'尺寸问题', size_wrong:'尺寸问题',
+  color_light:'颜色问题', color_dark:'颜色问题', color_wrong:'颜色问题', color_dislike:'颜色问题',
+  quality_thin:'质量/材质问题', quality_poor:'质量/材质问题', quality_slip:'质量/材质问题',
+  quality_smell:'质量/材质问题', quality_notflat:'质量/材质问题', quality_vacuum:'质量/材质问题',
+  quality_notwater:'质量/材质问题', quality_wind:'质量/材质问题',
+  expect_material:'质量/材质问题', expect_cushion:'质量/材质问题',
+  defect_damage:'产品缺陷', defect_func:'产品缺陷', defect_fade:'产品缺陷',
+  expect_look:'与预期不符', expect_generic:'与预期不符', design_dislike:'与预期不符',
+  not_fit_space:'不适合/不需要', changed_mind:'不适合/不需要', found_other:'不适合/不需要', found_price:'不适合/不需要',
+  order_wrong:'订单问题', order_dup:'订单问题',
+  delivery_late:'物流/配送问题', delivery_wrong:'物流/配送问题', pkg_damage:'物流/配送问题',
+  gift_return:'其他', no_useful_info:'其他', no_comment:'未留评论',
+};
+function groupOf(id){ return GROUPS[id]||'其他'; }
+
+function classify(comment) {
+  if (!comment || !comment.trim()) return 'no_comment';
+  const full = comment.replace(/\|/g, ' ').replace(/&#\d+;/g, ' ').trim().toLowerCase();
+  for (const rule of RULES) {
+    if (rule.re.test(full)) return rule.id;
+  }
+  // 兜底：无法归类的评论归入"无有效信息"
+  return 'no_useful_info';
+}
+
+function labelOf(id) {
+  const r = RULES.find(r => r.id === id);
+  return r ? r.label : '无有效信息';
+}
+
+function getRowCat(row) {
+  if (!row._cat) row._cat = classify(row['customer-comments']);
+  return row._cat;
+}
+
+// CSV parsing
+function parseCSV(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const hdr = parseLine(lines[0]);
+  return lines.slice(1).filter(l => l.trim()).map(l => {
+    const v = parseLine(l); const row = {};
+    hdr.forEach((h,i) => row[h] = (v[i]||'').trim());
+    return row;
+  }).filter(r => Object.keys(r).length >= hdr.length - 1);
+}
+function parseLine(line) {
+  const r=[]; let c='',q=false;
+  for(let i=0;i<line.length;i++){const ch=line[i];if(q){if(ch==='"'&&line[i+1]==='"'){c+='"';i++}else if(ch==='"')q=false;else c+=ch}else{if(ch==='"')q=true;else if(ch===','){r.push(c);c=''}else c+=ch}}
+  r.push(c);return r;
+}
+
+// Upload
+const dropZone=document.getElementById('dropZone'),csvFile=document.getElementById('csvFile'),fileName=document.getElementById('fileName'),analyzeBtn=document.getElementById('analyzeBtn'),asinInput=document.getElementById('asinInput'),rankBtn=document.getElementById('rankBtn');
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover')});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
+csvFile.addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0])});
+function handleFile(f){if(!f.name.endsWith('.csv')){alert('请上传CSV文件');return}fileName.textContent='✅ '+f.name;const r=new FileReader();r.onload=e=>{csvData=parseCSV(e.target.result);rankBtn.disabled=false;analyzeBtn.disabled=false};r.readAsText(f)}
+asinInput.addEventListener('keydown',e=>{if(e.key==='Enter')analyzeBtn.click()});
+rankBtn.addEventListener('click',showRanking);
+analyzeBtn.addEventListener('click',analyze);
+
+function showRanking(){
+  if(!csvData.length){alert('请先上传CSV文件');return}
+  // 按ASIN汇总退货数量
+  const asinData={};
+  csvData.forEach(r=>{
+    const a=(r['asin']||'').toUpperCase();
+    if(!a) return;
+    if(!asinData[a]) asinData[a]={qty:0,name:''};
+    asinData[a].qty+=parseInt(r['quantity']||1);
+    if(!asinData[a].name) asinData[a].name=(r['product-name']||'').substring(0,80);
+  });
+  const totalQty=Object.values(asinData).reduce((s,d)=>s+d.qty,0);
+  const sorted=Object.entries(asinData).sort((a,b)=>b[1].qty-a[1].qty).slice(0,10);
+  let html='<div style="font-weight:600;font-size:15px;color:#1e293b;margin-bottom:12px">📊 退货数量排名 Top 10</div>';
+  html+='<table><thead><tr><th>排名</th><th>ASIN</th><th>产品名称</th><th>退货数量</th><th>占总退货比</th></tr></thead><tbody>';
+  sorted.forEach(([asin,info],i)=>{
+    const pct=((info.qty/totalQty)*100).toFixed(1);
+    html+=`<tr><td>${i+1}</td><td style="font-family:monospace;color:#2563eb;cursor:pointer" onclick="document.getElementById('asinInput').value='${asin}';document.getElementById('asinInput').focus()">${asin}</td><td style="font-size:12px;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${info.name||'N/A'}</td><td style="font-weight:600;color:#dc2626">${info.qty}</td><td>${pct}%</td></tr>`;
+  });
+  html+='</tbody></table>';
+  html+='<p style="font-size:12px;color:#94a3b8;margin-top:10px">💡 点击ASIN可自动填入下方输入框，再点击"开始分析"查看详细退货原因分析。共 '+Object.keys(asinData).length+' 个ASIN，总退货 '+totalQty+' 件。</p>';
+  const container=document.getElementById('rankResults');
+  container.innerHTML=html;
+  container.style.display='block';
+}
+
+function analyze(){
+  const raw=asinInput.value.trim();
+  if(!raw){alert('请输入ASIN');return}
+  // 支持中英文逗号、空格分隔
+  const asins=[...new Set(raw.toUpperCase().split(/[,，\s]+/).map(s=>s.trim()).filter(Boolean))];
+  if(!asins.length){alert('请输入有效的ASIN');return}
+  const rows=csvData.filter(r=>asins.includes((r['asin']||'').toUpperCase()));
+  if(!rows.length){alert('未找到这些ASIN的退货记录：'+asins.join(', '));return}
+  rows.forEach(r=>delete r._cat);
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('results').style.display='block';
+  renderStats(rows,asins);renderReasonChart(rows);renderDispositionChart(rows);renderTrendChart(rows);renderKeywordChart(rows);renderReasonTable(rows);renderComments(rows);renderSuggestions(rows);
+}
+
+function renderStats(rows,asins){
+  const total=rows.reduce((s,r)=>s+parseInt(r['quantity']||1),0);
+  const names=[...new Set(rows.map(r=>(r['product-name']||'').substring(0,60)).filter(Boolean))];
+  const catIds=new Set();rows.forEach(r=>catIds.add(getRowCat(r)));
+  const sell=rows.filter(r=>r['detailed-disposition']==='SELLABLE').length;
+  const wc=rows.filter(r=>(r['customer-comments']||'').trim()).length;
+  const asinDisplay=asins.length>1?asins.join(', '):asins[0];
+  const nameDisplay=names.length>1?names.map((n,i)=>`<div style="margin-top:2px">${asins[i]||''}: ${n}...</div>`).join(''):`${names[0]||'N/A'}...`;
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat-card"><div class="label">ASIN${asins.length>1?' ('+asins.length+'个)':''}</div><div class="value blue" style="font-size:14px;word-break:break-all">${asinDisplay}</div><div style="font-size:11px;color:#94a3b8;margin-top:4px;max-height:60px;overflow:hidden">${nameDisplay}</div></div>
+    <div class="stat-card"><div class="label">退货总数</div><div class="value red">${total}</div><div style="font-size:12px;color:#94a3b8">${rows.length} 条记录</div></div>
+    <div class="stat-card"><div class="label">退货原因种类</div><div class="value orange">${catIds.size}</div></div>
+    <div class="stat-card"><div class="label">可售退回率</div><div class="value green">${((sell/rows.length)*100).toFixed(1)}%</div><div style="font-size:12px;color:#94a3b8">${sell}/${rows.length} 可重新销售</div></div>
+    <div class="stat-card"><div class="label">有评论的退货</div><div class="value blue">${wc}</div><div style="font-size:12px;color:#94a3b8">占比 ${((wc/rows.length)*100).toFixed(1)}%</div></div>`;
+}
+
+const CL=['#3b82f6','#ef4444','#f59e0b','#10b981','#8b5cf6','#ec4899','#06b6d4','#f97316','#6366f1','#14b8a6','#e11d48','#84cc16','#a855f7','#0ea5e9','#78716c','#fb923c','#4ade80','#f472b6','#22d3ee','#a78bfa'];
+function destroyCharts(){[reasonChart,reasonChart2,dispositionChart,trendChart,keywordChart].forEach(c=>{if(c)c.destroy()})}
+
+function renderReasonChart(rows){
+  destroyCharts();
+  // 第一个扇形图：按大类分布
+  const gCounts={};
+  rows.forEach(r=>{const q=parseInt(r['quantity']||1);const cat=getRowCat(r);const g=groupOf(cat);gCounts[g]=(gCounts[g]||0)+q});
+  const gSorted=Object.entries(gCounts).sort((a,b)=>b[1]-a[1]);
+  const gLabels=gSorted.map(([k])=>k),gData=gSorted.map(([,v])=>v);
+  reasonChart=new Chart(document.getElementById('reasonChart'),{type:'doughnut',data:{labels:gLabels,datasets:[{data:gData,backgroundColor:CL.slice(0,gData.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw}件 (${((ctx.raw/gData.reduce((a,b)=>a+b,0))*100).toFixed(1)}%)`}}}}});
+  // 第二个扇形图：按小类分布，去除未留评论/无有效信息/改变主意
+  const counts2={};
+  rows.forEach(r=>{const cat=getRowCat(r);if(cat==='no_comment'||cat==='no_useful_info'||cat==='changed_mind')return;const q=parseInt(r['quantity']||1);counts2[labelOf(cat)]=(counts2[labelOf(cat)]||0)+q});
+  const sorted2=Object.entries(counts2).sort((a,b)=>b[1]-a[1]);
+  const labels2=sorted2.map(([k])=>k),data2=sorted2.map(([,v])=>v);
+  reasonChart2=new Chart(document.getElementById('reasonChart2'),{type:'doughnut',data:{labels:labels2,datasets:[{data:data2,backgroundColor:CL.slice(0,data2.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw}件 (${((ctx.raw/data2.reduce((a,b)=>a+b,0))*100).toFixed(1)}%)`}}}}});
+}
+function renderDispositionChart(rows){
+  const counts={};rows.forEach(r=>{const d=r['detailed-disposition']||'UNKNOWN';counts[d]=(counts[d]||0)+parseInt(r['quantity']||1)});
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  dispositionChart=new Chart(document.getElementById('dispositionChart'),{type:'bar',data:{labels:sorted.map(([k])=>DISP[k]||k),datasets:[{label:'数量',data:sorted.map(([,v])=>v),backgroundColor:CL.slice(0,sorted.length),borderRadius:6}]},options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1}}}}});
+}
+function renderTrendChart(rows){
+  const d={};rows.forEach(r=>{const dt=(r['return-date']||'').substring(0,10);if(dt)d[dt]=(d[dt]||0)+parseInt(r['quantity']||1)});
+  const sorted=Object.entries(d).sort((a,b)=>a[0].localeCompare(b[0]));
+  trendChart=new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:sorted.map(([d])=>d.substring(5)),datasets:[{label:'退货数',data:sorted.map(([,v])=>v),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:3}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
+}
+function renderKeywordChart(rows){
+  const stop=new Set(['the','a','an','i','it','is','was','my','me','to','and','of','for','in','on','not','but','this','that','with','too','very','so','just','no','had','has','have','be','been','are','were','do','did','does','they','them','we','our','you','your','its','from','at','by','or','as','if','all','can','will','would','could','should','than','then','when','what','which','who','how','more','much','many','some','any','each','every','other','one','two','get','got','also','about','up','out','back','over','after','only','even','still','well','way','use','used','like','make','made','need','want','come','take','go','see','look','know','think','right','left','first','last','same','different','little','lot','really','already','again','here','there','where','why','because','since','while','before','during','between','through','into','off','down','around','without','within','above','below','under','near','away','inside','outside','behind','front','side','top','bottom','end','part','place','point','time','day','year','week','month','work','thing','item','product','order','amazon','return','returned','bought','purchase','ordered','received','sent','shipping','delivery','package','box','description','listing','review','price','money','refund','replacement','customer','seller','these','those','their','being','having','doing','going','getting','making','taking','trying','doesn','didn','wasn','isn','aren','won','wouldn','couldn','shouldn','don','expected','changed','mind','incorrect','none','nope','yes','sure']);
+  const wc={};
+  rows.forEach(r=>{(r['customer-comments']||'').toLowerCase().split(/[|,;.\s]+/).forEach(w=>{w=w.replace(/[^a-z\u4e00-\u9fff]/g,'');if(w.length>1&&!stop.has(w))wc[w]=(wc[w]||0)+1})});
+  const sorted=Object.entries(wc).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  if(!sorted.length){document.getElementById('keywordChart').parentElement.innerHTML='<h3>客户评论关键词</h3><p style="color:#94a3b8;text-align:center;padding:40px">暂无评论数据</p>';return}
+  keywordChart=new Chart(document.getElementById('keywordChart'),{type:'bar',data:{labels:sorted.map(([k])=>k),datasets:[{label:'出现次数',data:sorted.map(([,v])=>v),backgroundColor:'#8b5cf6',borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
+}
+
+function renderReasonTable(rows){
+  // 按大类 → 小类 分组统计
+  const groups={};  // { groupName: { total, subs: { subLabel: {count,comments,disps} } } }
+  rows.forEach(r=>{
+    const q=parseInt(r['quantity']||1),c=(r['customer-comments']||'').trim(),d=r['detailed-disposition']||'UNKNOWN',cat=getRowCat(r);
+    if(cat==='no_comment') return;
+    const g=groupOf(cat), lb=labelOf(cat);
+    if(!groups[g]) groups[g]={total:0,subs:{}};
+    groups[g].total+=q;
+    if(!groups[g].subs[lb]) groups[g].subs[lb]={count:0,comments:[],disps:{},catId:cat};
+    groups[g].subs[lb].count+=q; if(c) groups[g].subs[lb].comments.push(c);
+    groups[g].subs[lb].disps[d]=(groups[g].subs[lb].disps[d]||0)+1;
+  });
+  const total=rows.filter(r=>getRowCat(r)!=='no_comment').reduce((s,r)=>s+parseInt(r['quantity']||1),0);
+  const gSorted=Object.entries(groups).sort((a,b)=>b[1].total-a[1].total);
+  let html='<table><thead><tr><th>退货原因</th><th>数量</th><th>占比</th><th>商品状态</th><th>典型客户评论</th></tr></thead><tbody>';
+  gSorted.forEach(([gName,gInfo])=>{
+    const gPct=((gInfo.total/total)*100).toFixed(1);
+    const subEntries=Object.entries(gInfo.subs).sort((a,b)=>b[1].count-a[1].count);
+    // 大类行
+    html+=`<tr style="background:#f0f5ff;font-weight:600"><td>📁 ${gName}</td><td>${gInfo.total}</td><td>${gPct}%</td><td></td><td></td></tr>`;
+    // 小类行
+    subEntries.forEach(([lb,info])=>{
+      const pct=((info.count/total)*100).toFixed(1);
+      const ds=Object.entries(info.disps).map(([d,c])=>`${DISP[d]||d}(${c})`).join('、');
+      const tc=[...new Set(info.comments)].slice(0,3).map(c=>`<span class="tag">${c.substring(0,60)}</span>`).join(' ');
+      html+=`<tr><td style="padding-left:28px">└ ${lb}</td><td>${info.count}</td><td>${pct}%</td><td style="font-size:12px">${ds}</td><td>${tc||'<span style="color:#94a3b8">无评论</span>'}</td></tr>`;
+    });
+  });
+  html+='</tbody></table>';
+  document.getElementById('reasonTable').innerHTML=html;
+}
+
+function renderComments(rows){
+  const items=rows.filter(r=>(r['customer-comments']||'').trim()).map(r=>({
+    date:(r['return-date']||'').substring(0,10),cat:labelOf(getRowCat(r)),comment:r['customer-comments']
+  }));
+  if(!items.length){document.getElementById('commentList').innerHTML='<p style="color:#94a3b8;text-align:center;padding:20px">该ASIN无客户评论</p>';return}
+  document.getElementById('commentList').innerHTML=items.map(c=>`<div class="citem"><span style="color:#3b82f6;margin-right:8px">${c.date}</span><span class="tag">${c.cat}</span> ${c.comment}</div>`).join('');
+}
+
+function renderSuggestions(rows){
+  const groupCounts={}, groupComments={};
+  rows.forEach(r=>{
+    const q=parseInt(r['quantity']||1),c=(r['customer-comments']||'').trim(),cat=getRowCat(r);
+    if(cat==='no_comment'||cat==='no_useful_info') return;
+    const g=groupOf(cat);
+    groupCounts[g]=(groupCounts[g]||0)+q;
+    if(!groupComments[g]) groupComments[g]=[];
+    if(c) groupComments[g].push(c);
+  });
+  const total=rows.reduce((s,r)=>s+parseInt(r['quantity']||1),0);
+  const sorted=Object.entries(groupCounts).sort((a,b)=>b[1]-a[1]);
+  const sugs=[];
+
+  const GROUP_TIPS={
+    '尺寸问题':'• 在标题和五点描述中标注精确尺寸（同时标注cm和inch），如"实际尺寸: 244cm×305cm / 8\'×10\'"，避免买家凭感觉选购\n• 在产品图片中放置参照物（硬币、手掌、常见家具），帮助买家直观感受实际大小\n• 在 A+ 页面制作"尺寸选择指南"，列出各尺寸适用的房间面积范围，按房间类型推荐合适尺寸\n• 在变体选择页面为每个尺寸选项配上对应的场景图和尺寸标注\n• 在主图上直接标注尺寸数字，让买家一眼看到\n• 如果多个客户反馈偏大或偏小，在五点描述首行加入温馨提示（如"本款偏小，建议选大一号"）',
+    '颜色问题':'• 拍摄产品图片时使用标准色温（5500K）灯光，避免后期调色导致颜色失真\n• 在 Listing 中明确描述颜色深浅（如"浅米色/奶油白"而非仅写"米色"），标注色调偏向\n• 提供多种光线环境下的产品照片（日光、暖光、冷光），帮助买家判断真实色调\n• 在 A+ 页面增加颜色实拍对比图和不同装修风格下的搭配效果图\n• 核对所有变体的颜色名称是否与实物一致，避免"黑色"实际是"深蓝色"等误导',
+    '质量/材质问题':'• 对比竞品同价位产品的用料和工艺，找出自身差距点\n• 在 Listing 中如实标注产品厚度、材质成分和特性（如"PP聚丙烯编织"而非仅写"编织地毯"）\n• 与工厂协商在关键部位升级用料（如加厚底衬、升级缝线、更换材料供应商）\n• 改进包装方式：尽量卷筒包装而非折叠；在包装中附带平铺指南和清洁保养说明卡\n• 升级底部防滑材料（如使用TPR防滑颗粒底或加厚PVC防滑层）\n• 要求工厂在出厂前增加通风晾晒环节和外观全检环节',
+    '产品缺陷':'• 升级外包装材料（加厚瓦楞纸箱，建议五层瓦楞），增加缓冲材料保护\n• 增加出厂前外观全检环节，重点检查污渍、破损、线头等外观瑕疵\n• 与工厂协商提高来料检验标准，增加抽检比例（建议从AQL 2.5提升到1.5）\n• 对退货商品进行拆解分析，找出故障根因并反馈给工厂改进',
+    '与预期不符':'• 主图使用实拍图而非3D渲染图，减少视觉落差\n• 全面核查 Listing 文案与实物是否一致，修正任何夸大或模糊的表述\n• 在 A+ 页面增加实物细节特写图（材质纹理、花纹细节、边缘做工等）\n• 在五点描述中用具体数据替代模糊形容词（如"厚度12mm"而非"加厚款"）',
+    '不适合/不需要':'• 优化主图和视频，确保买家在购买前充分了解产品外观和功能\n• 在五点描述中突出产品核心卖点和使用场景，吸引精准目标客户\n• 检查广告投放关键词是否精准，避免引入非目标客户流量导致冲动购买\n• 在 Listing 中明确标注产品适用场景和不适用场景',
+    '订单问题':'• 在标题中清晰标注关键规格参数（尺寸、颜色、数量、型号）\n• 变体选择页面确保每个选项都有对应的清晰图片\n• 检查父子变体设置是否合理，避免买家混淆不同规格',
+    '物流/配送问题':'• 确保FBA库存充足，避免因缺货导致配送延迟\n• 升级外包装材料，在包装内增加缓冲材料\n• 检查FBA发货时的贴标流程，确保FNSKU标签与实际商品一一对应',
+    '其他':'• 此类退货与产品质量无直接关联\n• 持续监控退货趋势，结合有评论的退货数据综合分析',
+  };
+
+  const container=document.getElementById('suggestions');
+  if(!sorted.length){container.innerHTML='<div class="scard"><div class="stitle">暂无针对性建议</div><div class="sdesc">退货数据较少，建议持续监控。</div></div>';return}
+  sorted.forEach(([gName,count])=>{
+    const pct=((count/total)*100).toFixed(1);
+    const pri=pct>=30?'h':pct>=15?'m':'l';
+    const priL=pct>=30?'高优先级':pct>=15?'中优先级':'低优先级';
+    const desc=GROUP_TIPS[gName]||'• 深入分析该类评论的具体痛点，制定专项改进计划';
+    sugs.push({title:`📁 ${gName} (${pct}%, ${count}件)`,pri,priL,desc});
+  });
+  const po={h:0,m:1,l:2};
+  sugs.sort((a,b)=>po[a.pri]-po[b.pri]);
+  container.innerHTML=sugs.map(s=>`<div class="scard"><div class="stitle">${s.title}<span class="pri pri-${s.pri}">${s.priL}</span></div><div class="sdesc">${s.desc.replace(/\n/g,'<br>')}</div></div>`).join('');
+}
+
+// Export
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  const content=document.getElementById('results').cloneNode(true);
+  content.querySelectorAll('canvas').forEach(c=>{const img=document.createElement('img');const o=document.getElementById(c.id);if(o){img.src=o.toDataURL('image/png');img.style.maxWidth='100%'}c.replaceWith(img)});
+  content.querySelector('#exportBtn')?.remove();
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>退货分析报告</title><style>body{font-family:sans-serif;max-width:1000px;margin:0 auto;padding:20px}img{max-width:100%}.stat-card{display:inline-block;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin:6px;min-width:180px;text-align:center}.stats-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}.label{font-size:12px;color:#64748b}.value{font-size:24px;font-weight:700}.value.green{color:#16a34a}.value.red{color:#dc2626}.value.blue{color:#2563eb}.value.orange{color:#ea580c}.section-title{font-size:18px;font-weight:600;margin:20px 0 10px;padding-left:10px;border-left:4px solid #3b82f6}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#f8fafc;padding:10px;text-align:left;border-bottom:2px solid #e2e8f0}td{padding:8px 10px;border-bottom:1px solid #f1f5f9}.tag{display:inline-block;background:#eff6ff;color:#2563eb;padding:2px 8px;border-radius:12px;font-size:11px;margin:2px}.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}.chart-box{border:1px solid #e2e8f0;border-radius:8px;padding:16px}.chart-box h3{font-size:14px;color:#475569;margin-bottom:10px}.scard{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-bottom:10px}.stitle{font-weight:600;color:#166534;margin-bottom:4px}.sdesc{color:#15803d;font-size:13px;line-height:1.6}.pri{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;margin-left:6px}.pri-h{background:#fef2f2;color:#dc2626}.pri-m{background:#fffbeb;color:#d97706}.pri-l{background:#f0fdf4;color:#16a34a}.citem{padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;color:#475569}.citem:nth-child(odd){background:#fafbfc}</style></head><body><h1>📦 退货分析报告（基于客户评论）</h1><p>生成时间: ${new Date().toLocaleString('zh-CN')}</p><hr style="margin:16px 0">${content.innerHTML}</body></html>`;
+  const blob=new Blob([html],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);const fnAsins=asinInput.value.trim().toUpperCase().split(/[,，\s]+/).filter(Boolean).slice(0,3).join('_');a.download=`退货分析报告_${fnAsins}_${new Date().toISOString().substring(0,10)}.html`;a.click();
+});
+</script>
+</body>
+</html>

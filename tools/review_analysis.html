@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASIN 评论深度分析工具</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#f0f2f5;color:#333;line-height:1.7}
+.header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:#fff;padding:40px 0;text-align:center}
+.header h1{font-size:26px;margin-bottom:8px}.header p{font-size:14px;opacity:.8}
+.container{max-width:1240px;margin:0 auto;padding:20px}
+.setup-card{background:#fff;border-radius:16px;padding:30px;box-shadow:0 4px 20px rgba(0,0,0,.08);margin-bottom:20px}
+.setup-card h3{font-size:16px;color:#1a1a2e;margin-bottom:14px}
+.form-row{display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.form-row label{font-size:13px;color:#555;min-width:80px}
+.form-row select,.form-row input{padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;flex:1;min-width:200px}
+.form-row input[type=password]{font-family:monospace}
+.api-hint{font-size:11px;color:#aaa;margin-top:4px}
+.upload-area{background:#fff;border-radius:16px;padding:40px;box-shadow:0 4px 20px rgba(0,0,0,.08);text-align:center;margin-bottom:20px}
+.upload-zone{border:2px dashed #cbd5e0;border-radius:12px;padding:50px 30px;cursor:pointer;transition:all .3s}
+.upload-zone:hover,.upload-zone.dragover{border-color:#e94560;background:#fff5f7}
+.upload-zone .icon{font-size:48px;margin-bottom:12px}
+.upload-zone p{color:#888;font-size:14px}.upload-zone .hint{font-size:12px;color:#aaa;margin-top:8px}
+#fileInput{display:none}
+.file-info{margin-top:16px;padding:12px 20px;background:#f0fff4;border-radius:10px;display:none;font-size:14px;color:#38a169}
+.btn{margin-top:16px;padding:14px 48px;background:linear-gradient(135deg,#e94560,#0f3460);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;transition:all .3s;display:none}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.error-box{margin-top:16px;padding:14px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#dc2626;font-size:13px;display:none}
+</style>
+<style>
+#report{display:none}
+.nav{background:#fff;border-radius:12px;padding:12px 20px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;flex-wrap:wrap;gap:6px;position:sticky;top:0;z-index:100}
+.nav a{text-decoration:none;color:#555;font-size:12.5px;padding:5px 12px;border-radius:20px;transition:all .2s;white-space:nowrap}
+.nav a:hover,.nav a.active{background:#0f3460;color:#fff}
+.section{margin-bottom:28px}.section-title{font-size:20px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-left:14px;border-left:4px solid #e94560;display:flex;align-items:center;gap:10px}
+.section-title .num{background:#e94560;color:#fff;min-width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stat-card{background:#fff;border-radius:12px;padding:20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06);transition:transform .2s}
+.stat-card:hover{transform:translateY(-3px)}
+.stat-card .value{font-size:32px;font-weight:800;background:linear-gradient(135deg,#e94560,#0f3460);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.stat-card .label{font-size:13px;color:#888;margin-top:4px}
+.chart-container{position:relative;height:300px;width:100%}
+.progress-bar{height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;border-radius:4px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+table th{background:#f8f9fa;padding:10px 14px;text-align:left;font-weight:600;color:#555;border-bottom:2px solid #e2e8f0}
+table td{padding:9px 14px;border-bottom:1px solid #f0f0f0;vertical-align:top}
+table tr:hover{background:#fafbfc}
+.item-card{background:#fff;border-radius:10px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,.05);border-left:4px solid #3b82f6;margin-bottom:12px}
+.item-card h4{font-size:14px;color:#1a1a2e;margin-bottom:4px}
+.item-card .cnt{font-size:12px;color:#e94560;font-weight:700}
+.item-card .desc{font-size:12.5px;color:#555;margin:6px 0;line-height:1.7}
+.item-card .evidence{font-size:12px;color:#888;font-style:italic;padding:6px 10px;background:#f8f9fa;border-radius:6px;margin-top:6px}
+.item-card .opportunity{font-size:12.5px;color:#0f3460;padding:8px 12px;background:#ebf5ff;border-radius:8px;margin-top:6px;border-left:3px solid #3b82f6}
+.item-card .listing-app{font-size:12.5px;color:#065f46;padding:8px 12px;background:#ecfdf5;border-radius:8px;margin-top:6px;border-left:3px solid #10b981}
+.kano-group{margin-bottom:14px}
+.kano-group h4{font-size:14px;padding:6px 12px;border-radius:8px;margin-bottom:8px;display:inline-block}
+.kano-must{background:#fee2e2;color:#dc2626}.kano-perf{background:#dbeafe;color:#2563eb}.kano-delight{background:#d1fae5;color:#059669}
+.kano-item{padding:7px 14px;margin:3px 0;background:#fafbfc;border-radius:8px;font-size:13px;line-height:1.7}
+.roadmap-phase{position:relative;padding:18px 22px;border-left:3px solid #e2e8f0;margin-left:20px}
+.roadmap-phase::before{content:'';position:absolute;left:-8px;top:22px;width:13px;height:13px;border-radius:50%;border:3px solid #fff}
+.roadmap-phase.p1::before{background:#e94560}.roadmap-phase.p2::before{background:#f59e0b}.roadmap-phase.p3::before{background:#3b82f6}
+@media(max-width:768px){.grid2,.grid3,.grid4{grid-template-columns:1fr}.chart-container{height:250px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📊 ASIN 评论深度分析工具</h1>
+  <p>上传亚马逊评论CSV，AI一键生成10维深度分析报告</p>
+</div>
+<div class="container">
+
+<!-- 操作说明 -->
+<div style="background:#fff;border-radius:12px;padding:20px 28px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:20px">
+  <div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:10px">📋 操作步骤</div>
+  <div style="font-size:13.5px;color:#555;display:flex;flex-direction:column;gap:6px">
+    <div><span style="display:inline-block;width:22px;height:22px;background:#e94560;color:#fff;border-radius:50%;text-align:center;line-height:22px;font-size:12px;margin-right:6px">1</span>通过<span style="color:#e94560;font-weight:600">卖家精灵插件</span>下载 ASIN 评论数据（建议选择过去一年）</div>
+    <div><span style="display:inline-block;width:22px;height:22px;background:#e94560;color:#fff;border-radius:50%;text-align:center;line-height:22px;font-size:12px;margin-right:6px">2</span>上传 CSV 文件，点击<span style="color:#e94560;font-weight:600">「生成Prompt」</span></div>
+    <div><span style="display:inline-block;width:22px;height:22px;background:#e94560;color:#fff;border-radius:50%;text-align:center;line-height:22px;font-size:12px;margin-right:6px">3</span>一键复制 Prompt → 粘贴到 <span style="color:#e94560;font-weight:600">Kiro / Quick Suite</span> 等任意AI对话</div>
+    <div><span style="display:inline-block;width:22px;height:22px;background:#e94560;color:#fff;border-radius:50%;text-align:center;line-height:22px;font-size:12px;margin-right:6px">4</span>复制AI返回的JSON → 粘贴回来 → 点击<span style="color:#e94560;font-weight:600">「渲染报告」</span></div>
+  </div>
+  <div style="margin-top:12px;padding:10px 14px;background:#fffbeb;border-radius:8px;font-size:12.5px;color:#92400e;border:1px solid #fde68a">⚠️ 注意：以下建议由 AI 生成，仅供参考。如有问题，请联系 <span style="font-weight:600">cyangb@</span></div>
+</div>
+
+<!-- 上传 -->
+<div class="upload-area">
+  <div class="upload-zone" id="uploadZone">
+    <div class="icon">📁</div><p>点击上传或拖拽 CSV 文件到此处</p>
+    <div class="hint">支持卖家精灵导出的 CSV 格式</div>
+    <input type="file" id="fileInput" accept=".csv">
+  </div>
+  <div class="file-info" id="fileInfo"></div>
+  <button class="btn" id="btnPrompt" disabled>📋 生成 Prompt</button>
+</div>
+
+<!-- Step 2: Prompt output -->
+<div id="promptArea" style="display:none;background:#fff;border-radius:16px;padding:30px;box-shadow:0 4px 20px rgba(0,0,0,.08);margin-bottom:20px">
+  <h3 style="font-size:16px;color:#1a1a2e;margin-bottom:6px">📋 第一步：复制 Prompt</h3>
+  <p style="font-size:12.5px;color:#888;margin-bottom:12px">点击下方按钮复制，然后粘贴到 Kiro / Quick Suite 等任意AI对话中</p>
+  <textarea id="promptOutput" readonly style="width:100%;height:120px;border:1px solid #e2e8f0;border-radius:10px;padding:14px;font-size:12px;font-family:monospace;resize:vertical;background:#f8f9fa;color:#555"></textarea>
+  <button id="btnCopy" style="margin-top:10px;padding:12px 32px;background:#0f3460;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s">📋 一键复制 Prompt</button>
+</div>
+
+<!-- Step 3: JSON input -->
+<div id="jsonArea" style="display:none;background:#fff;border-radius:16px;padding:30px;box-shadow:0 4px 20px rgba(0,0,0,.08);margin-bottom:20px">
+  <h3 style="font-size:16px;color:#1a1a2e;margin-bottom:6px">📥 第二步：粘贴AI返回的JSON</h3>
+  <p style="font-size:12.5px;color:#888;margin-bottom:12px">将AI返回的完整内容粘贴到下方，点击渲染报告</p>
+  <textarea id="jsonInput" style="width:100%;height:150px;border:1px solid #e2e8f0;border-radius:10px;padding:14px;font-size:12px;font-family:monospace;resize:vertical" placeholder="粘贴AI返回的JSON到这里..."></textarea>
+  <button id="btnRender" style="margin-top:10px;padding:14px 48px;background:linear-gradient(135deg,#e94560,#0f3460);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:16px;font-weight:600;transition:all .3s">🚀 渲染报告</button>
+  <div class="error-box" id="errorBox"></div>
+</div>
+
+<div id="report"></div>
+</div>
+<script>
+function esc(s){return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+// ===== CSV Parser =====
+function parseCSV(text){
+  const lines=text.split('\n'),reviews=[];
+  for(let i=1;i<lines.length;i++){
+    const line=lines[i].trim();if(!line)continue;
+    const fields=[];let cur='',inQ=false;
+    for(let j=0;j<line.length;j++){const ch=line[j];if(ch==='"')inQ=!inQ;else if(ch===','&&!inQ){fields.push(cur.trim());cur=''}else cur+=ch}
+    fields.push(cur.trim());if(fields.length<8)continue;
+    const rating=parseInt(fields[7]);if(isNaN(rating)||rating<1||rating>5)continue;
+    const txt=(fields[5]||'').replace(/<br\s*\/?>/gi,' ').replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').trim();
+    const title=(fields[3]||'').trim();if(!txt&&!title)continue;
+    reviews.push({variant:fields[0]||'',vp:fields[1]==='Y',vine:fields[2]==='Y',title,text:txt,rating,date:fields[fields.length-1]||''});
+  }
+  return reviews;
+}
+
+function buildStats(reviews){
+  const total=reviews.length,stars=[0,0,0,0,0];
+  reviews.forEach(r=>stars[r.rating-1]++);
+  const avg=(reviews.reduce((s,r)=>s+r.rating,0)/total).toFixed(2);
+  const dates=reviews.map(r=>r.date).filter(d=>d).sort();
+  return{total,stars,avg,goodPct:((stars[3]+stars[4])/total*100).toFixed(1),midPct:(stars[2]/total*100).toFixed(1),badPct:((stars[0]+stars[1])/total*100).toFixed(1),vpCount:reviews.filter(r=>r.vp).length,vineCount:reviews.filter(r=>r.vine).length,dateRange:dates.length?dates[0]+' ~ '+dates[dates.length-1]:'N/A'};
+}
+
+function buildPrompt(reviews,stats){
+  const goodRevs=reviews.filter(r=>r.rating>=4).map(r=>`[${r.rating}★] ${r.title}: ${r.text}`);
+  const badRevs=reviews.filter(r=>r.rating<=3).map(r=>`[${r.rating}★] ${r.title}: ${r.text}`);
+  const maxC=100000;let gT=goodRevs.join('\n'),bT=badRevs.join('\n');
+  if(gT.length+bT.length>maxC){const r=goodRevs.length/(goodRevs.length+badRevs.length);gT=gT.substring(0,Math.floor(maxC*r));bT=bT.substring(0,Math.floor(maxC*(1-r)))}
+
+  return `你是一位资深的亚马逊产品分析师。请根据以下评论数据，用中文完成深度分析，并严格按照指定的JSON格式输出。
+
+## 基础统计（已计算好）
+- 总评论数: ${stats.total}
+- 平均评分: ${stats.avg}
+- 好评率(4-5星): ${stats.goodPct}%
+- 中评率(3星): ${stats.midPct}%
+- 差评率(1-2星): ${stats.badPct}%
+- 星级分布: 5星${stats.stars[4]}条, 4星${stats.stars[3]}条, 3星${stats.stars[2]}条, 2星${stats.stars[1]}条, 1星${stats.stars[0]}条
+- VP评论: ${stats.vpCount}条, Vine评论: ${stats.vineCount}条
+- 时间跨度: ${stats.dateRange}
+
+## 好评原文 (${goodRevs.length}条)
+${gT}
+
+## 差评/中评原文 (${badRevs.length}条)
+${bT}
+
+## 分析要求
+请逐条阅读每一条评论，深入理解用户的真实意图和上下文，然后完成以下10个维度的分析。每个维度都必须具体、有洞察力，直接引用用户原话作为证据。所有内容用中文输出。
+
+请严格按以下JSON格式输出（不要输出任何JSON以外的内容）：
+
+\`\`\`json
+{
+  "personas": [
+    {"name": "人群标签名称（要具体，如'卡车外观升级爱好者'而非'车主'）","count": 5,"description": "详细描述这类人群的特征、需求和行为模式（2-3句话）","quotes": ["用户原话1","用户原话2"]}
+  ],
+  "scenes": [
+    {"name": "使用场景名称（要具体）","count": 4,"description": "详细描述这个场景的具体情况（2-3句话）","quotes": ["用户原话1","用户原话2"]}
+  ],
+  "motivations": [
+    {"name": "购买动机名称（要具体）","count": 7,"quotes": ["用户原话1","用户原话2"]}
+  ],
+  "goodTop": [
+    {"name": "好评主题（中文）","count": 7,"listingApp": "Listing应用建议（具体可操作）","quotes": ["用户原话1","用户原话2"]}
+  ],
+  "badTop": [
+    {"name": "差评主题（中文）","count": 3,"listingApp": "Listing应用建议（具体可操作）","quotes": ["用户原话1","用户原话2"]}
+  ],
+  "unmetNeeds": [
+    {"name": "未满足需求名称","count": 2,"opportunity": "差异化机会（2-3句话）","quotes": ["用户原话1"]}
+  ],
+  "kano": {
+    "must": [{"name": "需求名称","reason": "为什么是必备需求（1-2句话，引用评论证据）"}],
+    "performance": [{"name": "需求名称","reason": "为什么是期望需求（1-2句话，引用评论证据）"}],
+    "delight": [{"name": "需求名称","reason": "为什么是魅力需求（1-2句话，引用评论证据）"}]
+  },
+  "roadmap": [
+    {"priority": "高","name": "改进项名称","badPct": "X%差评提及","action": "具体改进行动（2-3句话）","expectedResult": "预期效果"}
+  ],
+  "listing": {
+    "title": "标题优化建议",
+    "bullets": [{"point": "第一点：【核心卖点】具体建议"}],
+    "description": "产品描述优化建议（2-3句话）",
+    "images": [{"slot": "副图1","suggestion": "具体图片建议"}]
+  }
+}
+\`\`\`
+
+重要规则：
+1. 所有分析内容必须用中文输出
+2. 每个维度的条目都必须具体、有洞察力，不要泛泛而谈
+3. 必须直接引用用户原话作为证据（保留英文/西班牙语原文）
+4. count数字必须准确反映实际提及的评论条数
+5. Listing应用建议必须具体可操作，符合亚马逊FBA合规要求（不要建议在包装内附带营销材料）
+6. KANO分类必须基于评论数据中的实际证据
+7. 改进路线必须按差评频次排优先级
+8. 只输出JSON，不要输出任何其他文字`;
+}
+
+// ===== API Caller =====
+// (removed — using copy-paste workflow instead)
+
+// ===== Upload & Prompt Generation =====
+let parsedReviews=null,basicStats=null;
+const uploadZone=document.getElementById('uploadZone'),fileInput=document.getElementById('fileInput'),fileInfo=document.getElementById('fileInfo'),btnPrompt=document.getElementById('btnPrompt');
+const errorBox=document.getElementById('errorBox');
+
+uploadZone.addEventListener('click',()=>fileInput.click());
+uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('dragover')});
+uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.classList.remove('dragover');if(e.dataTransfer.files[0]?.name.endsWith('.csv'))handleFile(e.dataTransfer.files[0])});
+fileInput.addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0])});
+
+function handleFile(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    parsedReviews=parseCSV(e.target.result);basicStats=buildStats(parsedReviews);
+    fileInfo.style.display='block';fileInfo.innerHTML=`✅ 已加载: <strong>${esc(file.name)}</strong> (${parsedReviews.length} 条有效评论)`;
+    btnPrompt.style.display='inline-block';btnPrompt.disabled=false;errorBox.style.display='none';
+    document.getElementById('report').style.display='none';
+    document.getElementById('promptArea').style.display='none';
+    document.getElementById('jsonArea').style.display='none';
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+btnPrompt.addEventListener('click',()=>{
+  if(!parsedReviews||!parsedReviews.length){alert('未解析到有效评论');return}
+  const prompt=buildPrompt(parsedReviews,basicStats);
+  document.getElementById('promptOutput').value=prompt;
+  document.getElementById('promptArea').style.display='block';
+  document.getElementById('jsonArea').style.display='block';
+  document.getElementById('promptArea').scrollIntoView({behavior:'smooth'});
+});
+
+document.getElementById('btnCopy').addEventListener('click',function(){
+  const ta=document.getElementById('promptOutput');
+  ta.select();ta.setSelectionRange(0,ta.value.length);
+  navigator.clipboard.writeText(ta.value).then(()=>{
+    this.textContent='✅ 已复制！去粘贴给AI吧';this.style.background='#38a169';
+    setTimeout(()=>{this.textContent='📋 一键复制 Prompt';this.style.background='#0f3460'},3000);
+  }).catch(()=>{document.execCommand('copy');this.textContent='✅ 已复制！'});
+});
+
+document.getElementById('btnRender').addEventListener('click',()=>{
+  const raw=document.getElementById('jsonInput').value.trim();
+  if(!raw){alert('请先粘贴AI返回的JSON');return}
+  let data;
+  try{
+    const m=raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+    data=JSON.parse(m?m[1].trim():raw.trim());
+  }catch(e){errorBox.style.display='block';errorBox.textContent='❌ JSON解析失败: '+e.message;return}
+  if(!basicStats){alert('请先上传CSV文件');return}
+  errorBox.style.display='none';
+  const d={...basicStats,...data};
+  renderReport(d);
+});
+</script>
+<script>
+function renderReport(d){
+  const R=document.getElementById('report');
+  const COLORS=['#e94560','#3b82f6','#f59e0b','#10b981','#8b5cf6','#ec4899','#06b6d4','#ea580c','#84cc16','#0f3460','#d946ef','#7c3aed'];
+  const BGS=['#fff5f5','#eff6ff','#fffff0','#f0fdf4','#faf5ff','#fdf2f8','#ecfeff','#fff7ed','#f7fee7','#f0f9ff'];
+  const icons=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+  const starPcts=d.stars.map(s=>(s/d.total*100).toFixed(1));
+  const starColors=['#e53e3e','#ed8936','#ecc94b','#68d391','#38a169'];
+
+  let h=`<div class="nav"><a href="#s1">一、评论概览</a><a href="#s2">二、人群画像</a><a href="#s3">三、使用场景</a><a href="#s4">四、购买动机</a><a href="#s5">五、好评TOP</a><a href="#s6">六、差评TOP</a><a href="#s7">七、未满足需求</a><a href="#s8">八、KANO分类</a><a href="#s9">九、改进路线</a><a href="#s10">十、Listing应用</a></div>`;
+
+  // S1
+  h+=`<div class="section" id="s1"><div class="section-title"><span class="num">1</span> 评论概览</div>
+  <div class="grid4" style="margin-bottom:20px"><div class="stat-card"><div class="value">${d.total}</div><div class="label">总评论数</div></div><div class="stat-card"><div class="value">${d.avg}</div><div class="label">平均评分 ⭐</div></div><div class="stat-card"><div class="value">${d.goodPct}%</div><div class="label">好评率(4-5星)</div></div><div class="stat-card"><div class="value">${d.badPct}%</div><div class="label">差评率(1-2星)</div></div></div>
+  <div class="grid2"><div class="card"><h3 style="font-size:15px;margin-bottom:12px;color:#555">⭐ 星级分布</h3><div class="chart-container"><canvas id="c1"></canvas></div></div>
+  <div class="card"><h3 style="font-size:15px;margin-bottom:12px;color:#555">📊 评价分类</h3><div class="chart-container"><canvas id="c2"></canvas></div><div style="margin-top:16px"><table>${[5,4,3,2,1].map(s=>{const i=s-1;return`<tr><td>${s}星</td><td><div class="progress-bar"><div class="progress-fill" style="width:${starPcts[i]}%;background:${starColors[i]}"></div></div></td><td style="width:80px;text-align:right">${d.stars[i]} (${starPcts[i]}%)</td></tr>`}).join('')}</table></div></div></div>
+  <div class="grid3" style="margin-top:20px"><div class="stat-card"><div class="value" style="font-size:24px">${d.vpCount}</div><div class="label">VP评论</div></div><div class="stat-card"><div class="value" style="font-size:24px">${d.vineCount}</div><div class="label">Vine评论</div></div><div class="stat-card"><div class="value" style="font-size:16px">${esc(d.dateRange)}</div><div class="label">时间跨度</div></div></div></div>`;
+
+  // S2 Personas
+  const personas=d.personas||[];
+  h+=`<div class="section" id="s2"><div class="section-title"><span class="num">2</span> 人群画像</div><div class="grid2"><div>${personas.map((p,i)=>`<div class="item-card" style="border-left-color:${COLORS[i%12]}"><h4>${esc(p.name)}</h4><span class="cnt">${p.count}条提及</span><div class="desc">${esc(p.description||'')}</div>${(p.quotes||[]).length?`<div class="evidence">${p.quotes.map(q=>'"'+esc(q)+'"').join(' · ')}</div>`:''}</div>`).join('')}</div><div class="card"><h3 style="font-size:15px;margin-bottom:12px;color:#555">👥 人群分布</h3><div class="chart-container"><canvas id="c3"></canvas></div></div></div></div>`;
+
+  // S3 Scenes
+  const scenes=d.scenes||[];const h3=Math.ceil(scenes.length/2);
+  h+=`<div class="section" id="s3"><div class="section-title"><span class="num">3</span> 使用场景（细分）</div><div class="grid2"><div>${scenes.slice(0,h3).map((s,i)=>itemCard(s,i)).join('')}</div><div>${scenes.slice(h3).map((s,i)=>itemCard(s,i+h3)).join('')}</div></div>${scenes.length?`<div class="card" style="margin-top:16px"><h3 style="font-size:15px;margin-bottom:12px;color:#555">📊 场景分布</h3><div class="chart-container"><canvas id="c4"></canvas></div></div>`:''}</div>`;
+
+  // S4 Motivations
+  const motivs=d.motivations||[];const h4=Math.ceil(motivs.length/2);
+  h+=`<div class="section" id="s4"><div class="section-title"><span class="num">4</span> 购买动机（细分）</div><div class="grid2"><div>${motivs.slice(0,h4).map((m,i)=>`<div class="item-card" style="border-left-color:${COLORS[i%12]};background:${BGS[i%10]}"><h4>${icons[i]||'•'} ${esc(m.name)}</h4><span class="cnt" style="color:${COLORS[i%12]}">${m.count}条提及</span>${(m.quotes||[]).length?`<div class="evidence">${m.quotes.map(q=>'"'+esc(q)+'"').join(' · ')}</div>`:''}</div>`).join('')}</div><div>${motivs.slice(h4).map((m,i)=>{const j=i+h4;return`<div class="item-card" style="border-left-color:${COLORS[j%12]};background:${BGS[j%10]}"><h4>${icons[j]||'•'} ${esc(m.name)}</h4><span class="cnt" style="color:${COLORS[j%12]}">${m.count}条提及</span>${(m.quotes||[]).length?`<div class="evidence">${m.quotes.map(q=>'"'+esc(q)+'"').join(' · ')}</div>`:''}</div>`}).join('')}</div></div>${motivs.length>2?`<div class="card" style="margin-top:16px"><h3 style="font-size:15px;margin-bottom:12px;color:#555">🎯 购买动机分布</h3><div class="chart-container"><canvas id="c5"></canvas></div></div>`:''}</div>`;
+
+  // S5 Good
+  const goodTop=d.goodTop||[];
+  h+=`<div class="section" id="s5"><div class="section-title"><span class="num">5</span> 好评 TOP（含Listing应用）</div><div class="grid2"><div class="card"><h3 style="font-size:15px;margin-bottom:12px;color:#555">👍 好评词频</h3><div class="chart-container"><canvas id="c6"></canvas></div></div><div>${goodTop.map((g,i)=>`<div class="item-card" style="border-left-color:${COLORS[i%12]}"><h4>${esc(g.name)}</h4><span class="cnt">${g.count}条提及</span>${g.listingApp?`<div class="listing-app">📌 Listing应用: ${esc(g.listingApp)}</div>`:''}${(g.quotes||[]).length?`<div class="evidence">${g.quotes.map(q=>'"'+esc(q)+'"').join(' · ')}</div>`:''}</div>`).join('')}</div></div></div>`;
+
+  // S6 Bad
+  const badTop=d.badTop||[];const badC=['#dc2626','#ea580c','#f59e0b','#7c3aed'];
+  h+=`<div class="section" id="s6"><div class="section-title"><span class="num">6</span> 差评 TOP（含Listing应用）</div><div class="grid2"><div class="card"><h3 style="font-size:15px;margin-bottom:12px;color:#555">👎 差评分布</h3><div class="chart-container"><canvas id="c7"></canvas></div></div><div>${badTop.map((b,i)=>`<div class="item-card" style="border-left-color:${badC[i%4]}"><h4>${esc(b.name)}</h4><span class="cnt">${b.count}条提及</span>${b.listingApp?`<div class="listing-app">📌 Listing应用: ${esc(b.listingApp)}</div>`:''}${(b.quotes||[]).length?`<div class="evidence">${b.quotes.map(q=>'"'+esc(q)+'"').join(' · ')}</div>`:''}</div>`).join('')}</div></div></div>`;
+
+  // S7 Unmet
+  const unmet=d.unmetNeeds||[];
+  h+=`<div class="section" id="s7"><div class="section-title"><span class="num">7</span> 未满足需求 & 差异化机会</div>${unmet.map((u,i)=>`<div class="item-card" style="border-left-color:${COLORS[i%12]}"><h4>${esc(u.name)}</h4><span class="cnt">${u.count}条提及</span>${(u.quotes||[]).length?`<div class="evidence">${u.quotes.map(q=>'"'+esc(q)+'"').join(' · ')}</div>`:''}<div class="opportunity">💡 差异化机会：${esc(u.opportunity)}</div></div>`).join('')}</div>`;
+
+  // S8 KANO
+  const kano=d.kano||{must:[],performance:[],delight:[]};
+  h+=`<div class="section" id="s8"><div class="section-title"><span class="num">8</span> KANO 需求分类</div>
+  <div class="card" style="margin-bottom:16px"><div style="padding:14px 18px;background:#f8f9fa;border-radius:10px;font-size:13px;color:#555;line-height:1.8"><span style="font-weight:700;color:#1a1a2e">📖 KANO模型简介：</span>核心理念是产品特性与客户满意度之间存在非线性关系——并非所有功能对客户满意度的影响都是相同的。<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><span style="padding:4px 10px;background:#fee2e2;border-radius:6px;font-size:12px;color:#dc2626">🎯 优先满足必备需求 — 缺失即差评</span><span style="padding:4px 10px;background:#dbeafe;border-radius:6px;font-size:12px;color:#2563eb">📈 持续提升期望需求 — 做得越好满意度越高</span><span style="padding:4px 10px;background:#d1fae5;border-radius:6px;font-size:12px;color:#059669">✨ 用魅力需求创造差异化竞争优势</span><span style="padding:4px 10px;background:#f3f4f6;border-radius:6px;font-size:12px;color:#6b7280">➖ 不在无差异需求上浪费资源</span></div></div></div>
+  <div class="grid2"><div class="card"><div class="kano-group"><h4 class="kano-must">🔴 必备需求 (${(kano.must||[]).length})</h4>${(kano.must||[]).map(k=>`<div class="kano-item">🔒 <strong>${esc(k.name)}</strong> — ${esc(k.reason)}</div>`).join('')}</div><div class="kano-group"><h4 class="kano-perf">🔵 期望需求 (${(kano.performance||[]).length})</h4>${(kano.performance||[]).map(k=>`<div class="kano-item">📈 <strong>${esc(k.name)}</strong> — ${esc(k.reason)}</div>`).join('')}</div></div>
+  <div class="card"><div class="kano-group"><h4 class="kano-delight">🟢 魅力需求 (${(kano.delight||[]).length})</h4>${(kano.delight||[]).map(k=>`<div class="kano-item">✨ <strong>${esc(k.name)}</strong> — ${esc(k.reason)}</div>`).join('')}</div></div></div>
+  <div class="card" style="margin-top:16px"><h3 style="font-size:15px;margin-bottom:12px;color:#555">📊 KANO 模型可视化</h3><div class="chart-container" style="height:340px"><canvas id="c8"></canvas></div></div></div>`;
+
+  // S9 Roadmap
+  const roadmap=d.roadmap||[];const p1=roadmap.filter(r=>r.priority==='高'),p2=roadmap.filter(r=>r.priority==='中'),p3=roadmap.filter(r=>r.priority==='低');
+  h+=`<div class="section" id="s9"><div class="section-title"><span class="num">9</span> 改进路线图</div><div class="card">`;
+  if(p1.length)h+=`<div class="roadmap-phase p1"><h4 style="color:#e94560">🚨 高优先级</h4><div style="font-size:13.5px;color:#555">${p1.map((r,i)=>`<div style="padding:10px 0;${i<p1.length-1?'border-bottom:1px dashed #f0f0f0':''}"><strong>${esc(r.name)}</strong> <span style="font-size:12px;color:#e94560">(${esc(r.badPct||'')})</span><br><span style="font-size:12.5px;color:#666">${esc(r.action)}</span><br><span style="font-size:12px;color:#38a169">预期效果: ${esc(r.expectedResult||'')}</span></div>`).join('')}</div></div>`;
+  if(p2.length)h+=`<div class="roadmap-phase p2" style="margin-top:8px"><h4 style="color:#f59e0b">⚡ 中优先级</h4><div style="font-size:13.5px;color:#555">${p2.map((r,i)=>`<div style="padding:10px 0;${i<p2.length-1?'border-bottom:1px dashed #f0f0f0':''}"><strong>${esc(r.name)}</strong> <span style="font-size:12px;color:#f59e0b">(${esc(r.badPct||'')})</span><br><span style="font-size:12.5px;color:#666">${esc(r.action)}</span><br><span style="font-size:12px;color:#38a169">预期效果: ${esc(r.expectedResult||'')}</span></div>`).join('')}</div></div>`;
+  if(p3.length)h+=`<div class="roadmap-phase p3" style="margin-top:8px"><h4 style="color:#3b82f6">🔮 低优先级</h4><div style="font-size:13.5px;color:#555">${p3.map((r,i)=>`<div style="padding:10px 0;${i<p3.length-1?'border-bottom:1px dashed #f0f0f0':''}"><strong>${esc(r.name)}</strong> <span style="font-size:12px;color:#3b82f6">(${esc(r.badPct||'')})</span><br><span style="font-size:12.5px;color:#666">${esc(r.action)}</span><br><span style="font-size:12px;color:#38a169">预期效果: ${esc(r.expectedResult||'')}</span></div>`).join('')}</div></div>`;
+  h+=`</div></div>`;
+
+  // S10 Listing
+  const listing=d.listing||{};
+  h+=`<div class="section" id="s10"><div class="section-title"><span class="num">10</span> Listing 优化应用</div>`;
+  if(listing.title)h+=`<div class="card" style="margin-bottom:16px"><h3 style="font-size:15px;margin-bottom:10px;color:#555">📌 Title 优化</h3><div style="padding:14px;background:#f0f9ff;border-radius:10px;font-size:13.5px;color:#555">${esc(listing.title)}</div></div>`;
+  if(listing.bullets?.length)h+=`<div class="card" style="margin-bottom:16px"><h3 style="font-size:15px;margin-bottom:10px;color:#555">📝 Bullets 优化</h3>${listing.bullets.map(b=>`<div style="padding:10px 14px;background:#f8f9fa;border-radius:8px;margin-bottom:8px;font-size:13px;border-left:3px solid #3b82f6">${esc(b.point)}</div>`).join('')}</div>`;
+  if(listing.description)h+=`<div class="card" style="margin-bottom:16px"><h3 style="font-size:15px;margin-bottom:10px;color:#555">📄 Description 优化</h3><div style="padding:14px;background:#f8f9fa;border-radius:10px;font-size:13px;color:#555">${esc(listing.description)}</div></div>`;
+  if(listing.images?.length)h+=`<div class="card"><h3 style="font-size:15px;margin-bottom:10px;color:#555">🖼️ Images 优化</h3>${listing.images.map(img=>`<div style="padding:10px 14px;background:#f8f9fa;border-radius:8px;margin-bottom:8px;font-size:13px;border-left:3px solid #10b981"><strong>${esc(img.slot)}:</strong> ${esc(img.suggestion)}</div>`).join('')}</div>`;
+  h+=`</div><div style="text-align:center;padding:30px 0;color:#aaa;font-size:12px">报告生成时间：${new Date().toISOString().split('T')[0]} | 共分析 ${d.total} 条评论</div>`;
+
+  R.innerHTML=h;R.style.display='block';drawCharts(d);R.scrollIntoView({behavior:'smooth'});
+  const navLinks=document.querySelectorAll('.nav a');
+  const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){navLinks.forEach(l=>l.classList.remove('active'));const a=document.querySelector(`.nav a[href="#${e.target.id}"]`);if(a)a.classList.add('active')}})},{threshold:.2});
+  document.querySelectorAll('.section').forEach(s=>obs.observe(s));
+}
+
+function itemCard(s,i){
+  const COLORS=['#e94560','#3b82f6','#f59e0b','#10b981','#8b5cf6','#ec4899','#06b6d4','#ea580c','#84cc16','#0f3460','#d946ef','#7c3aed'];
+  return`<div class="item-card" style="border-left-color:${COLORS[i%12]}"><h4>${esc(s.name)}</h4><span class="cnt">${s.count}条提及</span>${s.description?`<div class="desc">${esc(s.description)}</div>`:''}${(s.quotes||[]).length?`<div class="evidence">${s.quotes.map(q=>'"'+esc(q)+'"').join(' · ')}</div>`:''}</div>`;
+}
+</script>
+<script>
+function drawCharts(d){
+  const CC=(id,cfg)=>{const el=document.getElementById(id);if(el)new Chart(el,cfg)};
+  const cl={r:'#e94560',b:'#0f3460',y:'#f59e0b',g:'#38a169',lb:'#60a5fa'};
+  const COLORS=['#e94560','#3b82f6','#f59e0b','#10b981','#8b5cf6','#ec4899','#06b6d4','#ea580c','#84cc16','#0f3460','#d946ef','#7c3aed'];
+
+  CC('c1',{type:'bar',data:{labels:['5星','4星','3星','2星','1星'],datasets:[{data:[d.stars[4],d.stars[3],d.stars[2],d.stars[1],d.stars[0]],backgroundColor:['#38a169','#68d391','#ecc94b','#ed8936','#e53e3e'],borderRadius:6,barThickness:28}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{display:false}}}}});
+  CC('c2',{type:'doughnut',data:{labels:['好评(4-5星)','中评(3星)','差评(1-2星)'],datasets:[{data:[+d.goodPct,+d.midPct,+d.badPct],backgroundColor:[cl.g,'#ecc94b',cl.r],borderWidth:0,cutout:'65%'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{padding:14,usePointStyle:true,pointStyle:'circle'}}}}});
+
+  const personas=d.personas||[];
+  if(personas.length)CC('c3',{type:'doughnut',data:{labels:personas.map(p=>p.name),datasets:[{data:personas.map(p=>p.count),backgroundColor:personas.map((_,i)=>COLORS[i%12]),borderWidth:0,cutout:'55%'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{padding:10,usePointStyle:true,pointStyle:'circle',font:{size:11}}}}}});
+
+  const scenes=d.scenes||[];
+  if(scenes.length)CC('c4',{type:'bar',data:{labels:scenes.map(s=>s.name.length>12?s.name.substring(0,12)+'...':s.name),datasets:[{data:scenes.map(s=>s.count),backgroundColor:scenes.map((_,i)=>COLORS[i%12]),borderRadius:6,barThickness:24}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{display:false},ticks:{font:{size:11}}}}}});
+
+  const motivs=d.motivations||[];
+  if(motivs.length>2)CC('c5',{type:'radar',data:{labels:motivs.map(m=>m.name.length>8?m.name.substring(0,8)+'...':m.name),datasets:[{label:'提及数',data:motivs.map(m=>m.count),backgroundColor:'rgba(233,69,96,.12)',borderColor:cl.r,pointBackgroundColor:cl.r,pointRadius:5,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{r:{beginAtZero:true,ticks:{font:{size:10}},pointLabels:{font:{size:10}},grid:{color:'rgba(0,0,0,.06)'}}}}});
+
+  const goodTop=d.goodTop||[];
+  if(goodTop.length)CC('c6',{type:'bar',data:{labels:goodTop.map(g=>g.name.length>12?g.name.substring(0,12)+'...':g.name),datasets:[{data:goodTop.map(g=>g.count),backgroundColor:ctx=>{const g=ctx.chart.ctx.createLinearGradient(0,0,500,0);g.addColorStop(0,cl.r);g.addColorStop(1,cl.b);return g},borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{display:false},ticks:{font:{size:11}}}}}});
+
+  const badTop=d.badTop||[];
+  if(badTop.length)CC('c7',{type:'bar',data:{labels:badTop.map(b=>b.name.length>12?b.name.substring(0,12)+'...':b.name),datasets:[{data:badTop.map(b=>b.count),backgroundColor:badTop.map((_,i)=>['#dc2626','#ea580c','#f59e0b','#7c3aed'][i%4]),borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{display:false},ticks:{font:{size:11}}}}}});
+
+  // KANO
+  const kano=d.kano||{must:[],performance:[],delight:[]};
+  const mustPts=(kano.must||[]).map((_,i)=>({x:7+i*0.5,y:0.5+i*0.4}));
+  const perfPts=(kano.performance||[]).map((_,i)=>({x:2+i*1.5,y:1.5+i*1.2}));
+  const delPts=(kano.delight||[]).map((_,i)=>({x:1+i*1.2,y:6+i*1.0}));
+  const indPts=[{x:5,y:-0.5},{x:7,y:-0.3}];
+  CC('c8',{type:'scatter',data:{datasets:[
+    {label:'必备需求',data:mustPts,backgroundColor:cl.r,pointRadius:10,pointStyle:'circle'},
+    {label:'期望需求',data:perfPts,backgroundColor:cl.lb,pointRadius:10,pointStyle:'triangle'},
+    {label:'魅力需求',data:delPts,backgroundColor:cl.g,pointRadius:10,pointStyle:'rectRot'},
+    {label:'无差异需求',data:indPts,backgroundColor:cl.y,pointRadius:10,pointStyle:'crossRot'}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{padding:14,usePointStyle:true}},tooltip:{callbacks:{label:c=>{const n=[(kano.must||[]).map(k=>k.name),(kano.performance||[]).map(k=>k.name),(kano.delight||[]).map(k=>k.name),['包装方式','品牌知名度']];return n[c.datasetIndex]?.[c.dataIndex]||''}}}},scales:{x:{title:{display:true,text:'需求实现程度 →',font:{size:12}},min:0,max:10,grid:{color:'rgba(0,0,0,.04)'}},y:{title:{display:true,text:'用户满意度 →',font:{size:12}},min:-2,max:10,grid:{color:'rgba(0,0,0,.04)'}}}}});
+}
+</script>
+</body>
+</html>
